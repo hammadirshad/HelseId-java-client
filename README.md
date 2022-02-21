@@ -1,2 +1,3 @@
-# HelseID-client
-HelseID-java-client
+# HelseID java client
+
+http://localhost:8080/api/bruker-info

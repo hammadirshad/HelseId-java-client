@@ -1,0 +1,54 @@
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${helseid.sts.uri}/.well-known/openid-configuration/jwks
+          issuer-uri: ${helseid.sts.uri}
+      client:
+        post-logout:
+          registration:
+            helseid:
+              end_session_endpoint: ${helseid.sts.uri}/connect/endsession
+              redirect-uri: http://localhost:8080/logget-ut
+        jwt:
+          registration:
+            helseid:
+              private-key: ...
+              public-key: ...
+            helseid-machine:
+              private-key: ...
+              public-key: ...
+        registration:
+          helseid:
+            client-id: YWFh
+            client-secret: YmJi
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            scope: [ 'openid', 'profile', 'offline_access', 'helseid://scopes/identity/pid', 'helseid://scopes/identity/security_level' ]
+            client-name: ${helseid.registration-name.login}
+            redirect-uri: http://localhost:8080/login/oauth2/code
+          helseid-machine:
+            client-id: YWFh
+            client-secret: YmJi
+            client-authentication-method: client_secret_post
+            authorization-grant-type: client_credentials
+            scope: [ ]
+            client-name: ${helseid.registration-name.machine}
+        provider:
+          helseid:
+            issuer-uri: ${helseid.sts.uri}
+            authorization-uri: ${helseid.sts.uri}/connect/authorize?acr_values=Level4
+            token-uri: ${helseid.sts.uri}/connect/token
+            user-info-uri: ${helseid.sts.uri}/connect/userinfo
+            jwk-set-uri: ${helseid.sts.uri}/.well-known/openid-configuration/jwks
+            user-name-attribute: sub
+          helseid-machine:
+            token-uri: ${helseid.sts.uri}/connect/token
+
+helseid:
+  registration-name:
+    login: helseid
+    machine: helseid-machine
+  sts:
+    uri: https://helseid-sts.test.nhn.no
