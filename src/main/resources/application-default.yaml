@@ -11,11 +11,9 @@ spring:
             helseid:
               private-key: private-key.pem
             helseid-machine:
-              private-key: ${spring.security.oauth2.client.jwt.registration.helseid.private-key}
-              public-key: ${spring.security.oauth2.client.jwt.registration.helseid.public-key}
+              private-key: private-key.pem
         registration:
           helseid:
             client-authentication-method: private_key_jwt
           helseid-machine:
             client-authentication-method: private_key_jwt
-
