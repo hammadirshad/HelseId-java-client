@@ -46,7 +46,7 @@ public class CommonWebSecurityConfigurator {
         oauth2Login
                 // match with redirect uri
                 .clientRegistrationRepository(clientRegistrationRepository)
-                .redirectionEndpoint(redirection -> redirection.baseUri("/login/oauth2/code"))
+                .redirectionEndpoint(redirection -> redirection.baseUri("/Auth/Token"))
                 .authorizationEndpoint(
                         authorization ->
                                 authorization.authorizationRequestResolver(

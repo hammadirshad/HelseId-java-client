@@ -40,7 +40,7 @@ public class IndexResource {
         return new ResponseEntity<>(message, HttpStatus.OK);
     }
 
-    @RequestMapping("/api/bruker-info")
+    @RequestMapping("/api/token-info")
     public ResponseEntity<?> brukerInfo(@AuthenticationPrincipal HelseIDBruker user) {
         return new ResponseEntity<>(user, HttpStatus.OK);
     }

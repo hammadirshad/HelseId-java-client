@@ -1,7 +1,7 @@
 package com.example.security;
 
+import com.example.config.OAuth2ClientDetailProperties;
 import com.example.config.OAuth2ClientHelseIDProperties;
-import com.example.config.OAuth2ClientLogoutProperties;
 import com.example.filter.ExpiredTokenFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +35,7 @@ import javax.servlet.http.HttpServletResponse;
 @RequiredArgsConstructor
 public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
-    private final OAuth2ClientLogoutProperties logoutProperties;
+    private final OAuth2ClientDetailProperties logoutProperties;
     private final ClientRegistrationRepository clientRegistrationRepository;
     private final OAuth2ClientHelseIDProperties helseIDProperties;
     private final OidcHelseIDBrukerService oidcHelseIDBrukerService;
@@ -71,7 +71,7 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
     @Bean
     public LogoutSuccessHandler oidcLogoutSuccessHandler() {
-        final OAuth2ClientLogoutProperties.Registration registration =
+        final OAuth2ClientDetailProperties.Registration registration =
                 logoutProperties.getRegistration().get(helseIDProperties.getRegistrationName().getLogin());
         OidcClientInitiatedLogoutSuccessHandler successHandler =
                 new OidcClientInitiatedLogoutSuccessHandler(loginClientRegistrationRepository());

@@ -1,8 +1,13 @@
 package com.example.service;
 
+import com.example.config.OAuth2ClientDetailProperties;
+import com.example.utils.CertificateUtils;
+import com.example.utils.PathResolver;
+import com.example.utils.XMLSec2PEM;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.KeyType;
+import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
@@ -22,6 +27,8 @@ import org.springframework.util.Assert;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
@@ -55,14 +62,13 @@ public class AuthorizationDetailsJwtClientParametersConverter<T extends Abstract
             }
             """;
     private final Function<ClientRegistration, JWK> jwkResolver;
-    private final String orgNr;
+    private final Map<String, OAuth2ClientDetailProperties.Registration> registrations;
     private final Map<String, JwsEncoderHolder> jwsEncoders = new ConcurrentHashMap<>();
 
 
-    public AuthorizationDetailsJwtClientParametersConverter(Function<ClientRegistration, JWK> jwkResolver, String orgNr) {
-        Assert.notNull(jwkResolver, "jwkResolver cannot be null");
-        this.jwkResolver = jwkResolver;
-        this.orgNr = orgNr;
+    public AuthorizationDetailsJwtClientParametersConverter(Map<String, OAuth2ClientDetailProperties.Registration> registrations) {
+        this.registrations = registrations;
+        this.jwkResolver = jwkResolver(registrations);
     }
 
     @Override
@@ -79,7 +85,7 @@ public class AuthorizationDetailsJwtClientParametersConverter<T extends Abstract
         JWK jwk = this.jwkResolver.apply(clientRegistration);
         if (jwk == null) {
 
-            final String description = String.format("Failed to resolve JWK signing key for client registration %s check private-key and public-key in properties'.",
+            final String description = String.format("Failed to resolve JWK signing key for client registration %s check private-key in properties'.",
                     clientRegistration.getRegistrationId());
 
             OAuth2Error oauth2Error = new OAuth2Error(INVALID_KEY_ERROR_CODE, description, null);
@@ -109,8 +115,10 @@ public class AuthorizationDetailsJwtClientParametersConverter<T extends Abstract
                 .issuedAt(issuedAt)
                 .expiresAt(expiresAt);
 
-        if (orgNr != null) {
-            String authorization_details = String.format(AUTHORIZATION_DETAILS_ORG_NR_TEMPLATE, orgNr);
+        final OAuth2ClientDetailProperties.Registration registration = registrations.get(clientRegistration.getClientName());
+        final String orgNumber = registration.getOrgNumber();
+        if (orgNumber != null) {
+            String authorization_details = String.format(AUTHORIZATION_DETAILS_ORG_NR_TEMPLATE, orgNumber);
             claimsBuilder.claim("authorization_details", authorization_details);
         }
 
@@ -178,6 +186,37 @@ public class AuthorizationDetailsJwtClientParametersConverter<T extends Abstract
             return this.jwk;
         }
 
+    }
+
+    private Function<ClientRegistration, JWK> jwkResolver(Map<String, OAuth2ClientDetailProperties.Registration> registrations) {
+        return (ClientRegistration clientRegistration) -> {
+            if (clientRegistration
+                    .getClientAuthenticationMethod()
+                    .equals(ClientAuthenticationMethod.PRIVATE_KEY_JWT)) {
+
+                final OAuth2ClientDetailProperties.Registration registration = registrations.get(clientRegistration.getClientName());
+                try {
+                    RSAPrivateKey privateKey;
+                    if (registration.getPrivateKey().endsWith(".pem")) {
+                        privateKey = (RSAPrivateKey) CertificateUtils.getPrivateKey(PathResolver.getInputStream(registration.getPrivateKey()));
+                    } else if (registration.getPrivateKey().endsWith(".xml")) {
+                        final String pem = XMLSec2PEM.getPem(PathResolver.getInputStream(registration.getPrivateKey()));
+                        privateKey = (RSAPrivateKey) CertificateUtils.getX509Certificate(pem);
+                    } else {
+                        privateKey = (RSAPrivateKey) CertificateUtils.getPrivateKey(registration.getPrivateKey());
+                    }
+
+                    RSAPublicKey publicKey = (RSAPublicKey) CertificateUtils.getPublicKey(privateKey);
+                    return new RSAKey.Builder(publicKey)
+                            .privateKey(privateKey)
+                            .keyID(UUID.randomUUID().toString())
+                            .build();
+                } catch (Exception e) {
+                    log.error(e.getMessage(), e);
+                }
+            }
+            return null;
+        };
     }
 }
 

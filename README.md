@@ -1,3 +1,4 @@
 # HelseID java client
 
-http://localhost:8080/api/bruker-info
+## ID Token
+[https://localhost:44320/api/token-info](https://localhost:44320/api/token-info)
