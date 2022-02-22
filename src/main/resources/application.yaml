@@ -11,7 +11,7 @@ spring:
             helseid-code:
               end_session_endpoint: ${helseid.sts.uri}/connect/endsession
               redirect-uri: http://localhost:8080/logget-ut
-              private-key: private-key-code.pem
+              private-key: private-key-code.json
             helseid-credentials:
               private-key: private-key-credentials.pem
               org-number: "999977775"

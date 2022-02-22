@@ -2,6 +2,7 @@ package com.example.service;
 
 import com.example.config.OAuth2ClientDetailProperties;
 import com.example.utils.CertificateUtils;
+import com.example.utils.JWK2PEM;
 import com.example.utils.PathResolver;
 import com.example.utils.XMLSec2PEM;
 import com.nimbusds.jose.jwk.JWK;
@@ -27,6 +28,8 @@ import org.springframework.util.Assert;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
@@ -198,12 +201,17 @@ public class AuthorizationDetailsJwtClientParametersConverter<T extends Abstract
                 try {
                     RSAPrivateKey privateKey;
                     if (registration.getPrivateKey().endsWith(".pem")) {
-                        privateKey = (RSAPrivateKey) CertificateUtils.getPrivateKey(PathResolver.getInputStream(registration.getPrivateKey()));
+                        final String pem = Files.readString(Path.of(PathResolver.getURI(registration.getPrivateKey())));
+                        privateKey = (RSAPrivateKey) CertificateUtils.getPrivateKey(pem);
                     } else if (registration.getPrivateKey().endsWith(".xml")) {
                         final String pem = XMLSec2PEM.getPem(PathResolver.getInputStream(registration.getPrivateKey()));
-                        privateKey = (RSAPrivateKey) CertificateUtils.getX509Certificate(pem);
+                        privateKey = (RSAPrivateKey) CertificateUtils.getPrivateKey(pem);
+                    } else if (registration.getPrivateKey().endsWith(".json")) {
+                        final String pem = JWK2PEM.getPem(PathResolver.getInputStream(registration.getPrivateKey()));
+                        privateKey = (RSAPrivateKey) CertificateUtils.getPrivateKey(pem);
                     } else {
-                        privateKey = (RSAPrivateKey) CertificateUtils.getPrivateKey(registration.getPrivateKey());
+                        final String pem = registration.getPrivateKey();
+                        privateKey = (RSAPrivateKey) CertificateUtils.getPrivateKey(pem);
                     }
 
                     RSAPublicKey publicKey = (RSAPublicKey) CertificateUtils.getPublicKey(privateKey);

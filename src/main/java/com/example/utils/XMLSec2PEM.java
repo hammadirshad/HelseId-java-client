@@ -44,8 +44,8 @@ public class XMLSec2PEM {
             return getPem(builder.parse(inputStream));
         } catch (Exception e) {
             log.error(e.getMessage(), e);
-            return null;
         }
+        return null;
     }
 
     private static String getPem(Document XMLSecKeyDoc) {
@@ -56,11 +56,15 @@ public class XMLSec2PEM {
                 StringBuilder pemStringBuilder = new StringBuilder();
                 if (keyType == PRIVATE_KEY) {
                     pemStringBuilder.append("-----BEGIN RSA PRIVATE KEY-----");
+                    pemStringBuilder.append("\n");
                     pemStringBuilder.append(convertXMLRSAPrivateKeyToPEM(XMLSecKeyDoc));
+                    pemStringBuilder.append("\n");
                     pemStringBuilder.append("-----END RSA PRIVATE KEY-----");
                 } else {
                     pemStringBuilder.append("-----BEGIN PUBLIC KEY-----");
-                    pemStringBuilder.append(convertXMLRSAPrivateKeyToPEM(XMLSecKeyDoc));
+                    pemStringBuilder.append("\n");
+                    pemStringBuilder.append(convertXMLRSAPublicKeyToPEM(XMLSecKeyDoc));
+                    pemStringBuilder.append("\n");
                     pemStringBuilder.append("-----END PUBLIC KEY-----");
                 }
                 return pemStringBuilder.toString();
