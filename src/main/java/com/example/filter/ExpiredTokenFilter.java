@@ -25,6 +25,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtDecoderFactory;
 import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.UrlPathHelper;
 
@@ -37,6 +38,7 @@ import java.time.Instant;
 import java.util.Objects;
 
 @Slf4j
+@Component
 @RequiredArgsConstructor
 public class ExpiredTokenFilter extends OncePerRequestFilter {
 

@@ -23,39 +23,30 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
         OAuth2ClientHelseIDProperties.class,
 })
 @Conditional(ClientsConfiguredCondition.class)
-public class HelseIDClientConfiguration {
-
-    private final OAuth2ClientHelseIDProperties oAuth2ClientHelseIDProperties;
-    private final ClientCredentialsOAuth2AuthorizedClientProvider
-            clientCredentialsAuthorizedClientProvider;
-    private final RefreshTokenOAuth2AuthorizedClientProvider refreshTokenauthorizedClientProvider;
-
-    public HelseIDClientConfiguration(
-            OAuth2ClientHelseIDProperties oAuth2ClientHelseIDProperties,
-            OAuth2AccessTokenResponseClient<OAuth2ClientCredentialsGrantRequest>
-                    credentialsGrantResponseClient,
-            OAuth2AccessTokenResponseClient<OAuth2RefreshTokenGrantRequest>
-                    refreshTokenTokenResponseClient) {
-        this.oAuth2ClientHelseIDProperties = oAuth2ClientHelseIDProperties;
-
-        clientCredentialsAuthorizedClientProvider =
-                new ClientCredentialsOAuth2AuthorizedClientProvider();
-        clientCredentialsAuthorizedClientProvider.setAccessTokenResponseClient(
-                credentialsGrantResponseClient);
-
-        refreshTokenauthorizedClientProvider = new RefreshTokenOAuth2AuthorizedClientProvider();
-        refreshTokenauthorizedClientProvider.setAccessTokenResponseClient(
-                refreshTokenTokenResponseClient);
-    }
+public class HelseIDClientCredentialConfiguration {
 
     @ConditionalOnProperty(prefix = "helseid", value = "registration-name.machine")
     @Bean
     public HelseIDClientCredentialTokenService helseIDClientCredentialTokenService(
             ClientRegistrationRepository clientRegistrationRepository,
-            OAuth2AuthorizedClientService oAuth2AuthorizedClientService) {
+            OAuth2ClientHelseIDProperties oAuth2ClientHelseIDProperties,
+            OAuth2AuthorizedClientService oAuth2AuthorizedClientService,
+            OAuth2AccessTokenResponseClient<OAuth2ClientCredentialsGrantRequest>
+                    credentialsGrantResponseClient,
+            OAuth2AccessTokenResponseClient<OAuth2RefreshTokenGrantRequest>
+                    refreshTokenTokenResponseClient) {
         String registrationName = oAuth2ClientHelseIDProperties.getRegistrationName().getMachine();
         ClientRegistration clientRegistration =
                 clientRegistrationRepository.findByRegistrationId(registrationName);
+
+        ClientCredentialsOAuth2AuthorizedClientProvider clientCredentialsAuthorizedClientProvider = new ClientCredentialsOAuth2AuthorizedClientProvider();
+        clientCredentialsAuthorizedClientProvider.setAccessTokenResponseClient(
+                credentialsGrantResponseClient);
+
+        RefreshTokenOAuth2AuthorizedClientProvider refreshTokenauthorizedClientProvider = new RefreshTokenOAuth2AuthorizedClientProvider();
+        refreshTokenauthorizedClientProvider.setAccessTokenResponseClient(
+                refreshTokenTokenResponseClient);
+
         return new HelseIDClientCredentialTokenService(
                 registrationName,
                 clientRegistration,
@@ -64,4 +55,3 @@ public class HelseIDClientConfiguration {
                 refreshTokenauthorizedClientProvider);
     }
 }
-

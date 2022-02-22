@@ -1,28 +1,38 @@
 package com.example.security;
 
+import com.example.config.OAuth2ClientHelseIDProperties;
 import com.example.model.HelseIDBruker;
 import com.example.utils.MethodsUtils;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
 import java.util.Set;
 
 @Slf4j
-@RequiredArgsConstructor
+@Service
 public class OidcHelseIDBrukerService extends OidcUserService {
 
     private final ClientRegistration clientRegistration;
+
+    public OidcHelseIDBrukerService(
+            ClientRegistrationRepository clientRegistrationRepository,
+            OAuth2ClientHelseIDProperties helseIDProperties) {
+        clientRegistration =
+                clientRegistrationRepository.findByRegistrationId(
+                        helseIDProperties.getRegistrationName().getLogin());
+    }
 
     @Override
     public OidcUser loadUser(OidcUserRequest userRequest) throws OAuth2AuthenticationException {

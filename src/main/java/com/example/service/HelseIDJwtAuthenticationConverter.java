@@ -1,32 +1,47 @@
 package com.example.service;
 
+import com.example.config.OAuth2ClientHelseIDProperties;
 import com.example.security.OidcHelseIDBrukerService;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.oidc.IdTokenClaimNames;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.endpoint.OidcParameterNames;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-@RequiredArgsConstructor
+@Slf4j
+@Component
 public class HelseIDJwtAuthenticationConverter
         implements Converter<Jwt, AbstractAuthenticationToken> {
 
     private static final String EXPIRES_AT = "exp";
     private static final String ISSUED_AT = "iat";
-    private final ClientRegistration clientRegistration;
     private final OidcHelseIDBrukerService oidcHelseIDBrukerService;
+    private final ClientRegistration clientRegistration;
+
+
+    public HelseIDJwtAuthenticationConverter(OidcHelseIDBrukerService oidcHelseIDBrukerService,
+                                             ClientRegistrationRepository clientRegistrationRepository,
+                                             OAuth2ClientHelseIDProperties helseIDProperties) {
+        this.oidcHelseIDBrukerService = oidcHelseIDBrukerService;
+        clientRegistration =
+                clientRegistrationRepository.findByRegistrationId(
+                        helseIDProperties.getRegistrationName().getLogin());
+    }
+
 
     @Override
     public AbstractAuthenticationToken convert(Jwt jwt) {

@@ -2,6 +2,7 @@ package com.example.config;
 
 import com.example.service.AuthorizationDetailsJwtClientParametersConverter;
 import com.example.utils.CertificateUtils;
+import com.example.utils.PathResolver;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.RSAKey;
 import lombok.RequiredArgsConstructor;
@@ -9,12 +10,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.oauth2.client.endpoint.*;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 
-import java.io.InputStream;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Map;
@@ -28,7 +27,7 @@ import java.util.function.Function;
         OAuth2ClientLogoutProperties.class
 })
 @RequiredArgsConstructor
-public class HelseIDClientTokenConfiguration {
+public class HelseIDTokenRequestClientConfiguration {
     private final OAuth2ClientKeypairProperties oauth2ClientKeypairProperties;
 
     @Bean
@@ -91,19 +90,12 @@ public class HelseIDClientTokenConfiguration {
                 try {
                     RSAPrivateKey privateKey;
                     if (registration.getPrivateKey().endsWith(".pem")) {
-                        InputStream inputStream = new ClassPathResource(registration.getPrivateKey()).getInputStream();
-                        privateKey = (RSAPrivateKey) CertificateUtils.getPrivateKey(inputStream);
+                        privateKey = (RSAPrivateKey) CertificateUtils.getPrivateKey(PathResolver.getInputStream(registration.getPrivateKey()));
                     } else {
                         privateKey = (RSAPrivateKey) CertificateUtils.getPrivateKey(registration.getPrivateKey());
                     }
 
-                    RSAPublicKey publicKey;
-                    if (registration.getPublicKey().endsWith(".pem")) {
-                        InputStream inputStream = new ClassPathResource(registration.getPublicKey()).getInputStream();
-                        publicKey = (RSAPublicKey) CertificateUtils.getPublicKey(inputStream);
-                    } else {
-                        publicKey = (RSAPublicKey) CertificateUtils.getPublicKey(registration.getPublicKey());
-                    }
+                    RSAPublicKey publicKey = (RSAPublicKey) CertificateUtils.getPublicKey(privateKey);
                     return new RSAKey.Builder(publicKey)
                             .privateKey(privateKey)
                             .keyID(UUID.randomUUID().toString())

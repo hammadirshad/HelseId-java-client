@@ -10,7 +10,6 @@ spring:
           registration:
             helseid:
               private-key: private-key.pem
-              public-key: public-key.pem
             helseid-machine:
               private-key: ${spring.security.oauth2.client.jwt.registration.helseid.private-key}
               public-key: ${spring.security.oauth2.client.jwt.registration.helseid.public-key}

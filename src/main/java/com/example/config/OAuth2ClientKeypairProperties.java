@@ -16,8 +16,6 @@ public class OAuth2ClientKeypairProperties {
     public static class Registration {
 
         private String privateKey;
-
-        private String publicKey;
     }
 }
 
