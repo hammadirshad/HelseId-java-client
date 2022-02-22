@@ -1,25 +1,12 @@
 package com.example.config;
 
 import com.example.service.AuthorizationDetailsJwtClientParametersConverter;
-import com.example.utils.CertificateUtils;
-import com.example.utils.PathResolver;
-import com.example.utils.XMLSec2PEM;
-import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jose.jwk.RSAKey;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.client.endpoint.*;
-import org.springframework.security.oauth2.client.registration.ClientRegistration;
-import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
-
-import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
-import java.util.Map;
-import java.util.UUID;
-import java.util.function.Function;
 
 @Slf4j
 @Configuration
