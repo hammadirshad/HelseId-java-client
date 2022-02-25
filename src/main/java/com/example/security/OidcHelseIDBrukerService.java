@@ -1,7 +1,7 @@
 package com.example.security;
 
 import com.example.config.OAuth2ClientHelseIDProperties;
-import com.example.model.HelseIDBruker;
+import com.example.model.HelseOidcUser;
 import com.example.utils.MethodsUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.GrantedAuthority;
@@ -17,7 +17,9 @@ import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Slf4j
@@ -45,34 +47,47 @@ public class OidcHelseIDBrukerService extends OidcUserService {
         }
     }
 
-    public HelseIDBruker createHelseIDBruker(OidcUser oidcUser) throws OAuth2AuthorizationException {
-        OidcIdToken idToken = oidcUser.getIdToken();
-        OidcUserInfo userInfo = oidcUser.getUserInfo();
+    public HelseOidcUser createHelseIDBruker(OidcUser oidcUser) throws OAuth2AuthorizationException {
 
         final String nameAttributeKey =
                 clientRegistration.getProviderDetails().getUserInfoEndpoint().getUserNameAttributeName();
 
-        String pid = getPid(idToken, userInfo);
+        return new HelseOidcUser(mapUserAuthorities(oidcUser), oidcUser.getIdToken(), oidcUser.getUserInfo(), nameAttributeKey);
+    }
 
-        Set<GrantedAuthority> mappedAuthorities = getMappedAuthorities();
+    /**
+     * Create user authorities base on HelseID scope or from database
+     */
+    private Set<GrantedAuthority> mapUserAuthorities(OidcUser oidcUser) {
+        OidcIdToken idToken = oidcUser.getIdToken();
+        OidcUserInfo userInfo = oidcUser.getUserInfo();
 
-        return new HelseIDBruker(mappedAuthorities, idToken, userInfo, nameAttributeKey);
+        Set<SimpleGrantedAuthority> authorities = new HashSet<>();
+        authorities.add(new SimpleGrantedAuthority("ROLE_ACTIVE"));
+
+        loadUserAuthorities(getPid(idToken, userInfo)).forEach(authority -> {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + authority));
+        });
+
+        oidcUser.getAuthorities()
+                .forEach(grantedAuthority ->
+                        authorities.add(new SimpleGrantedAuthority(grantedAuthority.getAuthority())));
+
+        return new HashSet<>(authorities);
     }
 
     private String getPid(OidcIdToken idToken, OidcUserInfo userInfo) {
-        if (userInfo != null && userInfo.getClaims().containsKey(HelseIDBruker.PID_Claim)) {
-            return MethodsUtils.getStringOrNull(userInfo.getClaims().get(HelseIDBruker.PID_Claim));
+        if (userInfo != null && userInfo.getClaims().containsKey(HelseOidcUser.PID_Claim)) {
+            return MethodsUtils.getStringOrNull(userInfo.getClaims().get(HelseOidcUser.PID_Claim));
         }
-        if (idToken != null && idToken.getClaims().containsKey(HelseIDBruker.PID_Claim)) {
-            return MethodsUtils.getStringOrNull(idToken.getClaims().get(HelseIDBruker.PID_Claim));
+        if (idToken != null && idToken.getClaims().containsKey(HelseOidcUser.PID_Claim)) {
+            return MethodsUtils.getStringOrNull(idToken.getClaims().get(HelseOidcUser.PID_Claim));
         }
         return null;
     }
 
-    public Set<GrantedAuthority> getMappedAuthorities() {
-        Set<SimpleGrantedAuthority> authorities = new HashSet<>();
-        authorities.add(new SimpleGrantedAuthority("ROLE_ACTIVE"));
-        return new HashSet<>(authorities);
+    public List<SimpleGrantedAuthority> loadUserAuthorities(String pid) {
+        return new ArrayList<>();
     }
 }
 

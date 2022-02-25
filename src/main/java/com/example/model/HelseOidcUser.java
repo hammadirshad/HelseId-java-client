@@ -12,12 +12,13 @@ import java.util.Set;
 
 @Getter
 @Setter
-public class HelseIDBruker extends DefaultOidcUser implements Serializable {
+public class HelseOidcUser extends DefaultOidcUser implements Serializable {
 
     public static final String PID_Claim = "helseid://claims/identity/pid";
     public static final String SECURITY_LEVEL_CLAIM = "helseid://claims/identity/security_level";
+    public static final String HPR_NUMBER = "helseid://claims/hpr/hpr_number";
 
-    public HelseIDBruker(Set<GrantedAuthority> authorities,
+    public HelseOidcUser(Set<GrantedAuthority> authorities,
                          OidcIdToken idToken,
                          OidcUserInfo userInfo,
                          String nameAttributeKey) {
@@ -30,6 +31,10 @@ public class HelseIDBruker extends DefaultOidcUser implements Serializable {
 
     public String getSecurityLevel() {
         return this.getClaimAsString(SECURITY_LEVEL_CLAIM);
+    }
+
+    public String getHprNumber() {
+        return this.getClaimAsString(HPR_NUMBER);
     }
 }
 

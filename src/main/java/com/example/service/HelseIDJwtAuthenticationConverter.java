@@ -10,9 +10,7 @@ import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
-import org.springframework.security.oauth2.core.oidc.IdTokenClaimNames;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
-import org.springframework.security.oauth2.core.oidc.endpoint.OidcParameterNames;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
@@ -46,8 +44,6 @@ public class HelseIDJwtAuthenticationConverter
     @Override
     public AbstractAuthenticationToken convert(Jwt jwt) {
         Map<String, Object> claims = new HashMap<>(jwt.getClaims());
-        boolean idToken =
-                claims.containsKey(IdTokenClaimNames.AUD) && claims.containsKey(IdTokenClaimNames.IAT);
 
         String token = jwt.getTokenValue();
         Instant issuedAt = Instant.parse(claims.get(ISSUED_AT).toString());
@@ -59,17 +55,11 @@ public class HelseIDJwtAuthenticationConverter
                         token,
                         issuedAt,
                         expiresAt,
-                        idToken ? Collections.emptySet() : clientRegistration.getScopes());
+                        Collections.emptySet());
 
         OidcIdToken oidcIdToken = new OidcIdToken(token, issuedAt, expiresAt, claims);
-        Map<String, Object> additionalParameters = new HashMap<>();
-
-        if (idToken) {
-            additionalParameters.put(OidcParameterNames.ID_TOKEN, token);
-        }
-
         OidcUserRequest oauth2UserRequest =
-                new OidcUserRequest(clientRegistration, accessToken, oidcIdToken, additionalParameters);
+                new OidcUserRequest(clientRegistration, accessToken, oidcIdToken, new HashMap<>());
 
         OidcUser oidcUser = this.oidcHelseIDBrukerService.loadUser(oauth2UserRequest);
 

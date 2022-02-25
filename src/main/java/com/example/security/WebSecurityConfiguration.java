@@ -45,7 +45,7 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http
+        http.requestMatcher(CommonWebSecurityConfigurator.webSecurityRequestMatcher())
                 .authorizeRequests(CommonWebSecurityConfigurator::configureAuthorizeRequests)
                 .addFilterAfter(expiredTokenFilter, FilterSecurityInterceptor.class)
                 .sessionManagement(CommonWebSecurityConfigurator::configurerSessionManagement)
