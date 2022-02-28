@@ -59,6 +59,7 @@ public class CommonWebSecurityConfigurator {
     }
 
     static void configureOAuth2Login(
+            String baseRedirectUri,
             OAuth2LoginConfigurer<HttpSecurity> oauth2Login,
             OidcHelseIDBrukerService oidcHelseIDBrukerService,
             ClientRegistrationRepository clientRegistrationRepository,
@@ -67,7 +68,7 @@ public class CommonWebSecurityConfigurator {
         oauth2Login
                 // match with redirect uri
                 .clientRegistrationRepository(clientRegistrationRepository)
-                .redirectionEndpoint(redirection -> redirection.baseUri("/Auth/Token"))
+                .redirectionEndpoint(redirection -> redirection.baseUri(baseRedirectUri))
                 .authorizationEndpoint(
                         authorization ->
                                 authorization.authorizationRequestResolver(

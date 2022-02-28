@@ -10,7 +10,8 @@ spring:
           registration:
             helseid-code:
               end_session_endpoint: ${helseid.sts.uri}/connect/endsession
-              redirect-uri: http://localhost:8080/logget-ut
+              post-logout-redirect-uri: http://localhost:${server.port}/logget-ut
+              base-redirect-uri: /Auth/Token
               private-key: private-key-code.json
             helseid-credentials:
               private-key: private-key-credentials.pem
@@ -49,6 +50,6 @@ helseid:
 server:
   port: 44320
   ssl:
-    key-store: classpath:baeldung.p12
+    key-store: classpath:key-store.p12
     key-store-password: password
     key-alias: baeldung

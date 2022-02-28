@@ -35,7 +35,7 @@ import javax.servlet.http.HttpServletResponse;
 @RequiredArgsConstructor
 public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
-    private final OAuth2ClientDetailProperties logoutProperties;
+    private final OAuth2ClientDetailProperties oAuth2ClientDetailProperties;
     private final ClientRegistrationRepository clientRegistrationRepository;
     private final OAuth2ClientHelseIDProperties helseIDProperties;
     private final OidcHelseIDBrukerService oidcHelseIDBrukerService;
@@ -53,6 +53,8 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .oauth2Login(
                         oauth2Login ->
                                 CommonWebSecurityConfigurator.configureOAuth2Login(
+                                        oAuth2ClientDetailProperties.getRegistration(helseIDProperties.getRegistrationName().getLogin())
+                                                .getBaseRedirectUri(),
                                         oauth2Login,
                                         oidcHelseIDBrukerService,
                                         loginClientRegistrationRepository(),
@@ -72,10 +74,10 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
     @Bean
     public LogoutSuccessHandler oidcLogoutSuccessHandler() {
         final OAuth2ClientDetailProperties.Registration registration =
-                logoutProperties.getRegistration().get(helseIDProperties.getRegistrationName().getLogin());
+                oAuth2ClientDetailProperties.getRegistration(helseIDProperties.getRegistrationName().getLogin());
         OidcClientInitiatedLogoutSuccessHandler successHandler =
                 new OidcClientInitiatedLogoutSuccessHandler(loginClientRegistrationRepository());
-        successHandler.setPostLogoutRedirectUri(registration.getRedirectUri());
+        successHandler.setPostLogoutRedirectUri(registration.getPostLogoutRedirectUri());
         return successHandler;
     }
 

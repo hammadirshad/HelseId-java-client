@@ -12,13 +12,19 @@ public class OAuth2ClientDetailProperties {
 
     private final Map<String, Registration> registration = new HashMap<>();
 
+    public Registration getRegistration(String key) {
+        return registration.get(key);
+    }
+
     @Data
     public static class Registration {
+
+        private String baseRedirectUri;
 
         /**
          * The the client may also send to uri id sign-out pass
          */
-        private String redirectUri;
+        private String postLogoutRedirectUri;
 
         /**
          * The end session endpoint can be used to trigger single sign-out.
