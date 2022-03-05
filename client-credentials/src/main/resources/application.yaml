@@ -1,0 +1,31 @@
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        detail:
+          audience: 'udelt:test-api'
+          scope: 'udelt:test-api/api'
+        jwt:
+          jwk-set-uri: ${helseid.sts.uri}/.well-known/openid-configuration/jwks
+          issuer-uri: ${helseid.sts.uri}
+      client:
+        detail:
+          registration:
+            helseid-credentials:
+              private-key: private-key-credentials.pem
+              org-number: "999977775"
+        registration:
+          helseid-credentials:
+            client-authentication-method: private_key_jwt
+            authorization-grant-type: client_credentials
+            scope: [ 'udelt:test-api/api' ]
+            client-id: ro-demo
+            client-name: ${helseid.registration-name.machine}
+        provider:
+          helseid-credentials:
+            token-uri: ${helseid.sts.uri}/connect/token
+helseid:
+  registration-name:
+    machine: helseid-credentials
+  sts:
+    uri: https://helseid-sts.utvikling.nhn.no

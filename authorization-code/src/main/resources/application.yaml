@@ -1,0 +1,43 @@
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${helseid.sts.uri}/.well-known/openid-configuration/jwks
+          issuer-uri: ${helseid.sts.uri}
+      client:
+        detail:
+          registration:
+            helseid-code:
+              end_session_endpoint: ${helseid.sts.uri}/connect/endsession
+              post-logout-redirect-uri: http://localhost:${server.port}/logget-ut
+              base-redirect-uri: /Auth/Token
+              private-key: private-key-code.json
+        registration:
+          helseid-code:
+            client-id: c441b6c3-7223-4068-a6ee-6eeb2e33e8f1
+            client-authentication-method: private_key_jwt
+            authorization-grant-type: authorization_code
+            scope: [ 'openid', 'profile', 'offline_access', 'helseid://scopes/identity/pid', 'helseid://scopes/identity/security_level' ]
+            client-name: ${helseid.registration-name.login}
+            redirect-uri: https://localhost:${server.port}/Auth/Token
+        provider:
+          helseid-code:
+            issuer-uri: ${helseid.sts.uri}
+            authorization-uri: ${helseid.sts.uri}/connect/authorize?acr_values=Level3
+            token-uri: ${helseid.sts.uri}/connect/token
+            user-info-uri: ${helseid.sts.uri}/connect/userinfo
+            jwk-set-uri: ${helseid.sts.uri}/.well-known/openid-configuration/jwks
+            user-name-attribute: sub
+helseid:
+  registration-name:
+    login: helseid-code
+  sts:
+    uri: https://helseid-sts.utvikling.nhn.no
+
+server:
+  port: 44320
+  ssl:
+    key-store: classpath:key-store.p12
+    key-store-password: password
+    key-alias: baeldung
