@@ -1,9 +1,10 @@
 package com.example.utils;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 
-import javax.servlet.http.HttpServletRequest;
+
 
 public abstract class AntPathRequestMatcherWrapper implements RequestMatcher {
 
