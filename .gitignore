@@ -1,5 +1,34 @@
-# Compiled class file
+*.iml
+*/*.iml
+
 *.class
+*.log
+*.log*
+/.idea
+*/.idea
+
+/lib/*
+/target
+*/target
+**/target
+
+node/
+*/node/
+**/node/
+node_modules/
+*/node_modules/
+**/node_modules/
+
+### Project Specific ###
+/model/src/generated-sources/
+## test merger ###
+.DS_Store
+
+
+### VS Code Specific ###
+.vscode/
+.project
+.settings/
 
 # Log file
 *.log
