@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.annotation.web.configurers.LogoutConfigurer;
 import org.springframework.security.config.annotation.web.configurers.SessionManagementConfigurer;
 import org.springframework.security.config.annotation.web.configurers.oauth2.client.OAuth2LoginConfigurer;
@@ -71,10 +72,10 @@ public class WebSecurityConfiguration {
         })
         .authorizeHttpRequests(WebSecurityConfiguration::configureAuthorizeRequests)
         .sessionManagement(this::configurerSessionManagement)
-        .headers(headers -> headers.frameOptions().disable())
+        .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
         .oauth2ResourceServer(
             oauth2ResourceServer ->
-                oauth2ResourceServer.jwt().jwtAuthenticationConverter(jwtAuthenticationConverter))
+                oauth2ResourceServer.jwt(jwtConfigurer ->jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter)))
         .build();
   }
 
@@ -90,7 +91,7 @@ public class WebSecurityConfiguration {
         .authorizeHttpRequests(WebSecurityConfiguration::configureAuthorizeRequests)
         .addFilterAfter(expiredTokenFilter, AuthorizationFilter.class)
         .sessionManagement(this::configurerSessionManagement)
-        .headers(headers -> headers.frameOptions().disable())
+            .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
         .oauth2Login(
             oauth2Login ->
                 this.configureOAuth2Login(
