@@ -6,7 +6,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.oauth2.client.endpoint.*;
+import org.springframework.security.oauth2.client.endpoint.DefaultAuthorizationCodeTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.DefaultRefreshTokenTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequestEntityConverter;
+import org.springframework.security.oauth2.client.endpoint.OAuth2RefreshTokenGrantRequest;
+import org.springframework.security.oauth2.client.endpoint.OAuth2RefreshTokenGrantRequestEntityConverter;
 
 @Slf4j
 @Configuration
@@ -33,21 +39,6 @@ public class HelseIDTokenRequestClientConfiguration {
         return tokenResponseClient;
     }
 
-    @Bean
-    public OAuth2AccessTokenResponseClient<OAuth2ClientCredentialsGrantRequest>
-    authorizationCredentialsGrantResponseClient() {
-        DefaultClientCredentialsTokenResponseClient tokenResponseClient =
-                new DefaultClientCredentialsTokenResponseClient();
-
-        OAuth2ClientCredentialsGrantRequestEntityConverter requestEntityConverter =
-                new OAuth2ClientCredentialsGrantRequestEntityConverter();
-
-        requestEntityConverter.addParametersConverter(
-                new AuthorizationDetailsJwtClientParametersConverter<>(oauth2ClientKeypairProperties.getRegistration()));
-
-        tokenResponseClient.setRequestEntityConverter(requestEntityConverter);
-        return tokenResponseClient;
-    }
 
     @Bean
     public OAuth2AccessTokenResponseClient<OAuth2RefreshTokenGrantRequest>

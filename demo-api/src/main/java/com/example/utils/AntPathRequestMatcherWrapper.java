@@ -5,7 +5,6 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 
 
-
 public abstract class AntPathRequestMatcherWrapper implements RequestMatcher {
 
     private final AntPathRequestMatcher delegate;

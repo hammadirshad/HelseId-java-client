@@ -3,9 +3,7 @@ package com.example.security;
 import com.example.config.OAuth2ClientDetailProperties;
 import com.example.config.OAuth2ClientHelseIDProperties;
 import com.example.filter.ExpiredTokenFilter;
-import com.example.service.HelseIDJwtOidcAuthenticationConverter;
 import com.example.service.OidcHelseIDBrukerService;
-import com.example.utils.AntPathRequestMatcherWrapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.nio.charset.StandardCharsets;
@@ -60,38 +58,14 @@ public class WebSecurityConfiguration {
   private final OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest>
       authorizationCodeTokenResponseClient;
 
-  @Bean
-  public SecurityFilterChain bearerAuthorizationFilterChain(HttpSecurity http,
-      HelseIDJwtOidcAuthenticationConverter jwtAuthenticationConverter) throws Exception {
-    return http
-        .securityMatcher(new AntPathRequestMatcherWrapper("/api/**") {
-          @Override
-          protected boolean precondition(HttpServletRequest request) {
-            return String.valueOf(request.getHeader("Authorization")).contains("Bearer");
-          }
-        })
-        .authorizeHttpRequests(WebSecurityConfiguration::configureAuthorizeRequests)
-        .sessionManagement(this::configurerSessionManagement)
-        .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
-        .oauth2ResourceServer(
-            oauth2ResourceServer ->
-                oauth2ResourceServer.jwt(jwtConfigurer ->jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter)))
-        .build();
-  }
 
   @Bean
   public SecurityFilterChain configure(HttpSecurity http) throws Exception {
     return http
-        .securityMatcher(new AntPathRequestMatcherWrapper("/**") {
-          @Override
-          protected boolean precondition(HttpServletRequest request) {
-            return !String.valueOf(request.getHeader("Authorization")).contains("Bearer");
-          }
-        })
         .authorizeHttpRequests(WebSecurityConfiguration::configureAuthorizeRequests)
         .addFilterAfter(expiredTokenFilter, AuthorizationFilter.class)
         .sessionManagement(this::configurerSessionManagement)
-            .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
+        .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
         .oauth2Login(
             oauth2Login ->
                 this.configureOAuth2Login(

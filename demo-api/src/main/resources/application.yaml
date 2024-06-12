@@ -1,0 +1,20 @@
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        detail:
+          audience: 'nhn:helseid-public-samplecode'
+          scope: 'nhn:helseid-public-samplecode/client-credentials'
+        jwt:
+          jwk-set-uri: ${helseid.sts.uri}/.well-known/openid-configuration/jwks
+          issuer-uri: ${helseid.sts.uri}
+dpop:
+  purge-interval: 60000  # 60 seconds in milliseconds
+  proof-max-age-seconds: 10  #10 seconds HelseId requirement
+  jti-max-age-seconds: 10  #10 seconds HelseId requirement
+helseid:
+  sts:
+    uri: https://helseid-sts.test.nhn.no
+
+server:
+  port: 9090

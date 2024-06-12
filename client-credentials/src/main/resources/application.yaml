@@ -2,9 +2,6 @@ spring:
   security:
     oauth2:
       resourceserver:
-        detail:
-          audience: 'nhn:helseid-public-samplecode/client-credentials'
-          scope: 'nhn:helseid-public-samplecode/client-credentials'
         jwt:
           jwk-set-uri: ${helseid.sts.uri}/.well-known/openid-configuration/jwks
           issuer-uri: ${helseid.sts.uri}

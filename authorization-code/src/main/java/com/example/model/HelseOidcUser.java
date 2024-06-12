@@ -1,14 +1,13 @@
 package com.example.model;
 
+import java.io.Serializable;
+import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
-
-import java.io.Serializable;
-import java.util.Set;
 
 @Getter
 @Setter

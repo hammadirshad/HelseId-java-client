@@ -1,12 +1,11 @@
 package com.example.security;
 
+import java.util.Collection;
 import lombok.AllArgsConstructor;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jwt.Jwt;
-
-import java.util.Collection;
 
 @AllArgsConstructor
 public class JwtScopeValidator implements OAuth2TokenValidator<Jwt> {

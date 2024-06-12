@@ -1,8 +1,8 @@
 package com.example;
 
+import com.example.model.DPoPToken;
 import com.example.service.HelseIDClientCredentialTokenService;
-import com.nimbusds.jwt.JWT;
-import com.nimbusds.jwt.JWTParser;
+import com.example.service.HelseIDDPoPClientCredentialTokenService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -16,32 +16,50 @@ import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.text.ParseException;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ClientCredentialsExample implements ApplicationRunner {
 
-    private final RestTemplateBuilder restTemplateBuilder;
-    private final HelseIDClientCredentialTokenService helseIDClientCredentialTokenService;
+  private final RestTemplateBuilder restTemplateBuilder;
+  private final HelseIDClientCredentialTokenService helseIDClientCredentialTokenService;
+  private final HelseIDDPoPClientCredentialTokenService helseIDDPoPClientCredentialTokenService;
 
-    @Override
-    public void run(ApplicationArguments args) throws ParseException {
-        final OAuth2AccessToken accessToken = helseIDClientCredentialTokenService.getAccessToken();
-        log.info("OAuth2Token: " + accessToken.getTokenValue());
-        log.info("Scopes: " + accessToken.getScopes().toString());
+  @Override
+  public void run(ApplicationArguments args) {
+    String requestUrl = "http://localhost:9090/api/client-name";
 
-        JWT jwt = JWTParser.parse(accessToken.getTokenValue());
-        log.info("Claims: " + jwt.getJWTClaimsSet().getClaims().toString());
+    OAuth2AccessToken accessToken = helseIDClientCredentialTokenService.getAccessToken();
+    request(accessToken, requestUrl);
 
-        RestTemplate restTemplate = restTemplateBuilder.build();
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setBearerAuth(accessToken.getTokenValue());
-        ResponseEntity<String> responseEntity = restTemplate.exchange("http://localhost:8080/api/secured", HttpMethod.GET,
-                new HttpEntity<String>(httpHeaders), String.class);
-        if (responseEntity.hasBody()) {
-            log.info(responseEntity.getBody());
-        }
+    DPoPToken dPoPToken = helseIDDPoPClientCredentialTokenService.getAccessToken(
+        requestUrl,
+        HttpMethod.GET.name());
+    request(dPoPToken, requestUrl);
+  }
+
+  private void request(OAuth2AccessToken accessToken, String requestUrl) {
+    RestTemplate restTemplate = restTemplateBuilder.build();
+    HttpHeaders httpHeaders = new HttpHeaders();
+    httpHeaders.setBearerAuth(accessToken.getTokenValue());
+    ResponseEntity<String> responseEntity = restTemplate.exchange(
+        requestUrl, HttpMethod.GET,
+        new HttpEntity<String>(httpHeaders), String.class);
+    if (responseEntity.hasBody()) {
+      log.error("Response from API: " + responseEntity.getBody());
     }
+  }
+
+  private void request(DPoPToken dPoPToken, String requestUrl) {
+    RestTemplate restTemplate = restTemplateBuilder.build();
+    HttpHeaders httpHeaders = new HttpHeaders();
+    httpHeaders.set("Authorization", "DPoP " + dPoPToken.getTokenValue());
+    httpHeaders.set("DPoP", dPoPToken.getDPoPHeader());
+    ResponseEntity<String> responseEntity = restTemplate.exchange(
+        requestUrl, HttpMethod.GET,
+        new HttpEntity<String>(httpHeaders), String.class);
+    if (responseEntity.hasBody()) {
+      log.error("Response from API using DPoP: " + responseEntity.getBody());
+    }
+  }
 }
