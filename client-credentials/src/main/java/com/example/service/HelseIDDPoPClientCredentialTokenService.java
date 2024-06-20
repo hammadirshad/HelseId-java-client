@@ -68,13 +68,9 @@ public class HelseIDDPoPClientCredentialTokenService {
 
       String tokenType = dPoPAuthorizedClient.getdPoPAccessToken().getTokenType().getValue();
       String tokenValue = dPoPAuthorizedClient.getdPoPAccessToken().getTokenValue();
-      String dPoPHelseId = (String) dPoPAuthorizedClient.getAdditionalParameters().get("DPoP");
       Set<String> scopes = dPoPAuthorizedClient.getdPoPAccessToken().getScopes();
 
       try {
-
-        SignedJWT signedJWT = SignedJWT.parse(dPoPHelseId);
-        String jti = signedJWT.getJWTClaimsSet().getStringClaim("jti");
         byte[] digest =
             MessageDigest.getInstance("SHA-256")
                 .digest(tokenValue.getBytes(StandardCharsets.US_ASCII));
@@ -85,7 +81,6 @@ public class HelseIDDPoPClientCredentialTokenService {
                 requestMethod,
                 requestUrl,
                 null,
-                jti,
                 ath,
                 clientRegistration);
 

@@ -43,17 +43,15 @@ public class DPoPProofBuilder {
   public String createDPoPProof(
       String httpMethod, String url, String nonce, ClientRegistration clientRegistration)
       throws JOSEException {
-    return createDPoPProof(httpMethod, url, nonce, null, null, clientRegistration);
+    return createDPoPProof(httpMethod, url, nonce, null, clientRegistration);
   }
 
   public String createDPoPProof(
       String httpMethod,
       String url,
       String nonce,
-      String jti,
       String ath,
-      ClientRegistration clientRegistration)
-      throws JOSEException {
+      ClientRegistration clientRegistration) {
     final Registration registration = registrations.get(clientRegistration.getClientName());
     try {
 
@@ -70,7 +68,7 @@ public class DPoPProofBuilder {
 
       Builder builder =
           new Builder()
-              .jwtID(jti != null ? jti : UUID.randomUUID().toString())
+              .jwtID(UUID.randomUUID().toString())
               .issueTime(new Date())
               .claim("htm", httpMethod)
               .claim("htu", url);

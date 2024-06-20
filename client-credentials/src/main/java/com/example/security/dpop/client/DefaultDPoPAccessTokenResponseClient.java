@@ -43,13 +43,7 @@ public class DefaultDPoPAccessTokenResponseClient
     try {
       ResponseEntity<DPoPAccessTokenResponse> response =
           this.restOperations.exchange(request, DPoPAccessTokenResponse.class);
-      DPoPAccessTokenResponse accessTokenResponse = response.getBody();
-      if (request.getHeaders().containsKey("DPoP")) {
-        List<String> dPoP = request.getHeaders().get("DPoP");
-        accessTokenResponse.getAdditionalParameters().put("DPoP", dPoP.getFirst());
-      }
-
-      return accessTokenResponse;
+      return response.getBody();
     } catch (RestClientException ex) {
       OAuth2Error oauth2Error =
           new OAuth2Error(
