@@ -6,10 +6,6 @@ import com.example.filter.ExpiredTokenFilter;
 import com.example.service.OidcHelseIDBrukerService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -22,18 +18,14 @@ import org.springframework.security.config.annotation.web.configurers.LogoutConf
 import org.springframework.security.config.annotation.web.configurers.SessionManagementConfigurer;
 import org.springframework.security.config.annotation.web.configurers.oauth2.client.OAuth2LoginConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.keygen.Base64StringKeyGenerator;
-import org.springframework.security.crypto.keygen.StringKeyGenerator;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
 import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
-import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
-import org.springframework.security.oauth2.core.endpoint.PkceParameterNames;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
@@ -61,6 +53,11 @@ public class WebSecurityConfiguration {
 
   @Bean
   public SecurityFilterChain configure(HttpSecurity http) throws Exception {
+    String registrationName = helseIDProperties.getRegistrationName().getLogin();
+    String baseRedirectUri = oAuth2ClientDetailProperties.getRegistration(
+            registrationName)
+        .getBaseRedirectUri();
+
     return http
         .authorizeHttpRequests(WebSecurityConfiguration::configureAuthorizeRequests)
         .addFilterAfter(expiredTokenFilter, AuthorizationFilter.class)
@@ -69,33 +66,31 @@ public class WebSecurityConfiguration {
         .oauth2Login(
             oauth2Login ->
                 this.configureOAuth2Login(
-                    oAuth2ClientDetailProperties.getRegistration(
-                            helseIDProperties.getRegistrationName().getLogin())
-                        .getBaseRedirectUri(),
+                    baseRedirectUri,
                     oauth2Login,
                     oidcHelseIDBrukerService,
-                    loginClientRegistrationRepository(),
+                    loginClientRegistrationRepository(registrationName),
                     authorizationCodeTokenResponseClient))
         .logout(
             logout ->
-                WebSecurityConfiguration.configureLogout(logout, oidcLogoutSuccessHandler()))
+                WebSecurityConfiguration.configureLogout(logout,
+                    oidcLogoutSuccessHandler(registrationName)))
         .build();
   }
 
-  public ClientRegistrationRepository loginClientRegistrationRepository() {
+  public ClientRegistrationRepository loginClientRegistrationRepository(String registrationName) {
     ClientRegistration clientRegistration =
-        clientRegistrationRepository.findByRegistrationId(
-            helseIDProperties.getRegistrationName().getLogin());
+        clientRegistrationRepository.findByRegistrationId(registrationName);
     return new InMemoryClientRegistrationRepository(clientRegistration);
   }
 
-  @Bean
-  public LogoutSuccessHandler oidcLogoutSuccessHandler() {
+
+  public LogoutSuccessHandler oidcLogoutSuccessHandler(String registrationName) {
     final OAuth2ClientDetailProperties.Registration registration =
-        oAuth2ClientDetailProperties.getRegistration(
-            helseIDProperties.getRegistrationName().getLogin());
+        oAuth2ClientDetailProperties.getRegistration(registrationName);
     OidcClientInitiatedLogoutSuccessHandler successHandler =
-        new OidcClientInitiatedLogoutSuccessHandler(loginClientRegistrationRepository());
+        new OidcClientInitiatedLogoutSuccessHandler(
+            loginClientRegistrationRepository(registrationName));
     successHandler.setPostLogoutRedirectUri(registration.getPostLogoutRedirectUri());
     return successHandler;
   }
@@ -173,35 +168,18 @@ public class WebSecurityConfiguration {
 
   private OAuth2AuthorizationRequestResolver authorizationRequestResolverCodeChallenge(
       ClientRegistrationRepository clientRegistrationRepository) {
-    DefaultOAuth2AuthorizationRequestResolver resolver =
+    /*DefaultOAuth2AuthorizationRequestResolver resolver =
         new DefaultOAuth2AuthorizationRequestResolver(
             clientRegistrationRepository,
             OAuth2AuthorizationRequestRedirectFilter.DEFAULT_AUTHORIZATION_REQUEST_BASE_URI);
-    resolver.setAuthorizationRequestCustomizer(
-        customizer -> {
-          StringKeyGenerator secureKeyGenerator =
-              new Base64StringKeyGenerator(Base64.getUrlEncoder().withoutPadding(), 96);
-          String codeVerifier = secureKeyGenerator.generateKey();
-          try {
-            byte[] digest =
-                MessageDigest.getInstance("SHA-256")
-                    .digest(codeVerifier.getBytes(StandardCharsets.US_ASCII));
-            String codeChallenge = Base64.getUrlEncoder().withoutPadding().encodeToString(digest);
+    resolver.setAuthorizationRequestCustomizer(OAuth2AuthorizationRequestCustomizers
+        .withPkce());*/
 
-            customizer
-                .attributes(
-                    attributes -> attributes.put(PkceParameterNames.CODE_VERIFIER, codeVerifier))
-                .additionalParameters(
-                    additionalParameters ->
-                        additionalParameters.put(PkceParameterNames.CODE_CHALLENGE_METHOD, "S256"))
-                .additionalParameters(
-                    additionalParameters ->
-                        additionalParameters.put(PkceParameterNames.CODE_CHALLENGE, codeChallenge));
-
-          } catch (NoSuchAlgorithmException e) {
-            log.error(e.getMessage(), e);
-          }
-        });
+    PARAuthorizationWithPkceRequestResolver resolver =
+        new PARAuthorizationWithPkceRequestResolver(
+            clientRegistrationRepository,
+            oAuth2ClientDetailProperties.getRegistration(),
+            OAuth2AuthorizationRequestRedirectFilter.DEFAULT_AUTHORIZATION_REQUEST_BASE_URI);
     return resolver;
   }
 
