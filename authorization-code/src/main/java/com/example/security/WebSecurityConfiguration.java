@@ -103,8 +103,7 @@ public class WebSecurityConfiguration {
   @Bean
   public CsrfTokenRepository csrfTokenRepository() {
     CookieCsrfTokenRepository csrfTokenRepository = new CookieCsrfTokenRepository();
-    csrfTokenRepository.setCookieHttpOnly(false);
-    csrfTokenRepository.setCookiePath("/");
+    csrfTokenRepository.setCookieCustomizer(cookieBuilder -> cookieBuilder.httpOnly(false));
     return csrfTokenRepository;
   }
 
