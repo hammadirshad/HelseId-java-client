@@ -5,6 +5,8 @@ import com.example.config.OAuth2ClientResourceDetailProperties;
 import com.example.security.dpop.DPoPAuthenticationFilter;
 import com.example.security.dpop.DPoPAuthorizationTokenResolver;
 import com.example.utils.AntPathRequestMatcherWrapper;
+import com.nimbusds.jose.JOSEObjectType;
+import com.nimbusds.jose.proc.DefaultJOSEObjectTypeVerifier;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +45,13 @@ public class ResourceServerConfiguration {
     OAuth2ResourceServerProperties.Jwt jwtProperties = oAuth2ResourceServerProperties.getJwt();
 
     NimbusJwtDecoder nimbusJwtDecoder = NimbusJwtDecoder.withJwkSetUri(jwtProperties.getJwkSetUri())
-        .jwsAlgorithm(SignatureAlgorithm.from(jwtProperties.getJwsAlgorithms().get(0))).build();
+        .jwsAlgorithm(SignatureAlgorithm.from(jwtProperties.getJwsAlgorithms().get(0)))
+        .jwtProcessorCustomizer(
+            (processor) ->
+                processor.setJWSTypeVerifier(
+                    new DefaultJOSEObjectTypeVerifier(
+                        new JOSEObjectType("JWT"), new JOSEObjectType("at+jwt"))))
+        .build();
 
     List<OAuth2TokenValidator<Jwt>> validators = new ArrayList<>();
 
@@ -67,7 +75,8 @@ public class ResourceServerConfiguration {
 
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http,
-      HelseIDJwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
+      HelseIDJwtAuthenticationConverter jwtAuthenticationConverter,
+      OAuth2ClientResourceDetailProperties oAuth2ClientDetailProperties) throws Exception {
     return http
         .securityMatcher(new AntPathRequestMatcherWrapper("/api/**") {
           @Override
@@ -75,7 +84,9 @@ public class ResourceServerConfiguration {
             return !String.valueOf(request.getHeader("Authorization")).contains("DPoP");
           }
         })
-        .authorizeHttpRequests(ResourceServerConfiguration::configureAuthorizeRequests)
+        .authorizeHttpRequests(
+            registry -> ResourceServerConfiguration.configureAuthorizeRequests(registry,
+                oAuth2ClientDetailProperties))
         .oauth2ResourceServer(
             oauth2ResourceServer ->
                 oauth2ResourceServer.jwt(jwtConfigurer -> jwtConfigurer.jwtAuthenticationConverter(
@@ -86,6 +97,7 @@ public class ResourceServerConfiguration {
   @Bean
   public SecurityFilterChain filterChainDPoP(HttpSecurity http,
       HelseIDJwtAuthenticationConverter jwtAuthenticationConverter,
+      OAuth2ClientResourceDetailProperties oAuth2ClientDetailProperties,
       DPoPProperties dPoPCheckerProperties) throws Exception {
     return http
         .securityMatcher(new AntPathRequestMatcherWrapper("/api/**") {
@@ -94,7 +106,9 @@ public class ResourceServerConfiguration {
             return String.valueOf(request.getHeader("Authorization")).contains("DPoP");
           }
         })
-        .authorizeHttpRequests(ResourceServerConfiguration::configureAuthorizeRequests)
+        .authorizeHttpRequests(
+            registry -> ResourceServerConfiguration.configureAuthorizeRequests(registry,
+                oAuth2ClientDetailProperties))
         .addFilterBefore(new DPoPAuthenticationFilter(dPoPCheckerProperties),
             BearerTokenAuthenticationFilter.class)
         .oauth2ResourceServer(
@@ -107,19 +121,15 @@ public class ResourceServerConfiguration {
 
   static void configureAuthorizeRequests(
       AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry
-          authorizeRequests) {
+          authorizeRequests,
+      OAuth2ClientResourceDetailProperties oAuth2ClientDetailProperties) {
     authorizeRequests
         .requestMatchers("/",
-            "/error",
-            "/actuator/**",
-            "/webjars/**")
+            "/error")
         .permitAll()
         .requestMatchers("/api/**")
-        .hasAnyAuthority("HelseID_SCOPE_nhn:helseid-public-samplecode/client-credentials")
-        .requestMatchers("/logout**",
-            "/api/token-info",
-            "/api/login")
-        .authenticated()
+        .hasAnyAuthority(HelseIDJwtAuthenticationConverter.DEFAULT_AUTHORITY_PREFIX.concat(
+            oAuth2ClientDetailProperties.getScope()))
         .anyRequest()
         .authenticated();
   }

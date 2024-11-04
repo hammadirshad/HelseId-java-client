@@ -216,7 +216,10 @@ public class JwtClientAssertionParametersService {
           RSAPublicKey publicKey = (RSAPublicKey) CertificateUtils.getPublicKey(privateKey);
           return new RSAKey.Builder(publicKey)
               .privateKey(privateKey)
-              .keyID(UUID.randomUUID().toString())
+              .keyID(
+                  registration.getKeyId() != null
+                      ? registration.getKeyId()
+                      : UUID.randomUUID().toString())
               .build();
         } catch (Exception e) {
           log.error(e.getMessage(), e);

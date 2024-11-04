@@ -39,6 +39,7 @@ public class ClientCredentialsExample implements ApplicationRunner {
   }
 
   private void request(OAuth2AccessToken accessToken, String requestUrl) {
+    log.warn(accessToken.getTokenValue());
     RestTemplate restTemplate = restTemplateBuilder.build();
     HttpHeaders httpHeaders = new HttpHeaders();
     httpHeaders.setBearerAuth(accessToken.getTokenValue());

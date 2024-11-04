@@ -33,6 +33,12 @@ public class OAuth2ClientDetailProperties {
 
         private String privateKey;
 
+        private String keyId;
+
         private String orgNumber;
+
+        private String acrValues;
+
+        private String prompt;
     }
 }

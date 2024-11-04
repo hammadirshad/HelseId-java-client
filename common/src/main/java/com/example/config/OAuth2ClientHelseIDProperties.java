@@ -22,8 +22,5 @@ public class OAuth2ClientHelseIDProperties {
 
         private String login;
 
-        private String ehelse;
-
-        private String machine;
     }
 }

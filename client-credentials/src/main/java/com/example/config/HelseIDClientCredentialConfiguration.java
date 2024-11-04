@@ -10,7 +10,6 @@ import com.example.service.HelseIDClientCredentialTokenService;
 import com.example.service.HelseIDDPoPClientCredentialTokenService;
 import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.security.oauth2.client.ClientsConfiguredCondition;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -34,6 +33,8 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 @Conditional(ClientsConfiguredCondition.class)
 public class HelseIDClientCredentialConfiguration {
 
+  private static final String HELSEID_CREDENTIALS = "helseid-credentials";
+
   @Bean
   public OAuth2AccessTokenResponseClient<OAuth2ClientCredentialsGrantRequest>
   authorizationCredentialsGrantResponseClient(
@@ -52,17 +53,15 @@ public class HelseIDClientCredentialConfiguration {
     return tokenResponseClient;
   }
 
-  @ConditionalOnProperty(prefix = "helseid", value = "registration-name.machine")
   @Bean
   public HelseIDClientCredentialTokenService helseIDClientCredentialTokenService(
       ClientRegistrationRepository clientRegistrationRepository,
-      OAuth2ClientHelseIDProperties oAuth2ClientHelseIDProperties,
       OAuth2AuthorizedClientService oAuth2AuthorizedClientService,
       OAuth2AccessTokenResponseClient<OAuth2ClientCredentialsGrantRequest>
           credentialsGrantResponseClient) {
-    String registrationName = oAuth2ClientHelseIDProperties.getRegistrationName().getMachine();
+
     ClientRegistration clientRegistration =
-        clientRegistrationRepository.findByRegistrationId(registrationName);
+        clientRegistrationRepository.findByRegistrationId(HELSEID_CREDENTIALS);
 
     ClientCredentialsOAuth2AuthorizedClientProvider clientCredentialsAuthorizedClientProvider = new ClientCredentialsOAuth2AuthorizedClientProvider();
     clientCredentialsAuthorizedClientProvider.setAccessTokenResponseClient(
@@ -100,13 +99,11 @@ public class HelseIDClientCredentialConfiguration {
   @Bean
   public HelseIDDPoPClientCredentialTokenService helseIdApiDPOPClientCredentialTokenService(
       ClientRegistrationRepository clientRegistrationRepository,
-      OAuth2ClientHelseIDProperties oAuth2ClientHelseIDProperties,
       OAuth2AuthorizedClientService oAuth2AuthorizedClientService,
       DPoPProofBuilder dPoPProofBuilder,
       DPoPAccessTokenResponseClient<DPoPClientCredentialsGrantRequest> credentialsGrantClient) {
-    String registrationName = oAuth2ClientHelseIDProperties.getRegistrationName().getMachine();
     ClientRegistration clientRegistration =
-        clientRegistrationRepository.findByRegistrationId(registrationName);
+        clientRegistrationRepository.findByRegistrationId(HELSEID_CREDENTIALS);
     return new HelseIDDPoPClientCredentialTokenService(
         clientRegistration,
         dPoPProofBuilder,
