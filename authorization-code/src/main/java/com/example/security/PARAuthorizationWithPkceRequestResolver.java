@@ -4,9 +4,11 @@ import com.example.config.OAuth2ClientDetailProperties;
 import com.example.config.OAuth2ClientDetailProperties.Registration;
 import com.example.service.JwtClientAssertionParametersService;
 import jakarta.servlet.http.HttpServletRequest;
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -32,9 +34,12 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.util.Assert;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.DefaultUriBuilderFactory;
+import org.springframework.web.util.UriBuilder;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -106,19 +111,23 @@ public class PARAuthorizationWithPkceRequestResolver implements OAuth2Authorizat
     String redirectUri = expandRedirectUri(request, clientRegistration, redirectUriAction);
     String state = DEFAULT_STATE_GENERATOR.generateKey();
     Map<String, Object> pkceParameters = buildPkceParameters(clientRegistration);
-    ParResponse parResponse = sendParRequest(redirectUri, state, clientRegistration,
-        pkceParameters);
+    String parRequestUri = sendParRequest(redirectUri, state, clientRegistration,
+        pkceParameters).request_uri;
+
+    return buildOAuth2AuthorizationRequest(
+        pkceParameters, clientRegistration, redirectUri, state, parRequestUri);
+  }
+
+  private OAuth2AuthorizationRequest buildOAuth2AuthorizationRequest(
+      Map<String, Object> pkceParameters, ClientRegistration clientRegistration, String redirectUri,
+      String state, String parRequestUri) {
     String codeVerifier = pkceParameters
         .get(PkceParameterNames.CODE_VERIFIER).toString();
-
-    Map<String, Object> additionalParameters = new HashMap<>();
-    additionalParameters.put("request_uri", parResponse.request_uri);
-    //additionalParameters.put("expires_in", parResponse.expires_in);
 
     String authorizationEndpoint = clientRegistration.getProviderDetails()
         .getConfigurationMetadata().get("authorization_endpoint").toString();
 
-    OAuth2AuthorizationRequest.Builder builder = OAuth2AuthorizationRequest.authorizationCode()
+    OAuth2AuthorizationRequest oAuth2AuthorizationRequest = OAuth2AuthorizationRequest.authorizationCode()
         .attributes((attrs) ->
         {
           attrs.put(OAuth2ParameterNames.REGISTRATION_ID, clientRegistration.getRegistrationId());
@@ -128,10 +137,33 @@ public class PARAuthorizationWithPkceRequestResolver implements OAuth2Authorizat
         .clientId(clientRegistration.getClientId())
         .scope(OidcScopes.OPENID)
         .authorizationUri(authorizationEndpoint)
-        .state(state);
-    builder.additionalParameters(additionalParameters);
+        .state(state).build();
 
-    return builder.build();
+    String authorizationRequestUri = getAuthorizationRequestUri(parRequestUri,
+        oAuth2AuthorizationRequest);
+
+    Field authorizationRequestUriField = ReflectionUtils.findField(OAuth2AuthorizationRequest.class,
+        "authorizationRequestUri");
+    if (authorizationRequestUriField != null) {
+      ReflectionUtils.makeAccessible(authorizationRequestUriField);
+      ReflectionUtils.setField(authorizationRequestUriField, oAuth2AuthorizationRequest,
+          authorizationRequestUri);
+    }
+    return oAuth2AuthorizationRequest;
+  }
+
+  private String getAuthorizationRequestUri(String parRequestUri,
+      OAuth2AuthorizationRequest oAuth2AuthorizationRequest) {
+    DefaultUriBuilderFactory uriBuilderFactory = new DefaultUriBuilderFactory();
+    uriBuilderFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.NONE);
+
+    MultiValueMap<String, String> queryParams = new LinkedMultiValueMap<>();
+    queryParams.put("request_uri", List.of(parRequestUri));
+    queryParams.put(OAuth2ParameterNames.CLIENT_ID,
+        List.of(oAuth2AuthorizationRequest.getClientId()));
+    UriBuilder uriBuilder = uriBuilderFactory.uriString(
+        oAuth2AuthorizationRequest.getAuthorizationUri()).queryParams(queryParams);
+    return uriBuilder.build().toString();
   }
 
   public ParResponse sendParRequest(String redirectUri, String state,
@@ -226,7 +258,7 @@ public class PARAuthorizationWithPkceRequestResolver implements OAuth2Authorizat
     return null;
   }
 
-  private static String expandRedirectUri(HttpServletRequest request,
+  private String expandRedirectUri(HttpServletRequest request,
       ClientRegistration clientRegistration,
       String action) {
     Map<String, String> uriVariables = new HashMap<>();
