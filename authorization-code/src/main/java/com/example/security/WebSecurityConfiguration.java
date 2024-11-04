@@ -1,7 +1,7 @@
 package com.example.security;
 
+import com.example.config.HelseConfiguration;
 import com.example.config.OAuth2ClientDetailProperties;
-import com.example.config.OAuth2ClientHelseIDProperties;
 import com.example.filter.ExpiredTokenFilter;
 import com.example.service.OidcHelseIDBrukerService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -44,18 +44,15 @@ public class WebSecurityConfiguration {
 
   private final OAuth2ClientDetailProperties oAuth2ClientDetailProperties;
   private final ClientRegistrationRepository clientRegistrationRepository;
-  private final OAuth2ClientHelseIDProperties helseIDProperties;
   private final OidcHelseIDBrukerService oidcHelseIDBrukerService;
   private final ExpiredTokenFilter expiredTokenFilter;
   private final OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest>
       authorizationCodeTokenResponseClient;
 
-
   @Bean
   public SecurityFilterChain configure(HttpSecurity http) throws Exception {
-    String registrationName = helseIDProperties.getRegistrationName().getLogin();
     String baseRedirectUri = oAuth2ClientDetailProperties.getRegistration(
-            registrationName)
+            HelseConfiguration.REGISTRATION_NAME)
         .getBaseRedirectUri();
 
     return http
@@ -69,12 +66,12 @@ public class WebSecurityConfiguration {
                     baseRedirectUri,
                     oauth2Login,
                     oidcHelseIDBrukerService,
-                    loginClientRegistrationRepository(registrationName),
+                    loginClientRegistrationRepository(HelseConfiguration.REGISTRATION_NAME),
                     authorizationCodeTokenResponseClient))
         .logout(
             logout ->
                 WebSecurityConfiguration.configureLogout(logout,
-                    oidcLogoutSuccessHandler(registrationName)))
+                    oidcLogoutSuccessHandler(HelseConfiguration.REGISTRATION_NAME)))
         .build();
   }
 
@@ -168,7 +165,7 @@ public class WebSecurityConfiguration {
 
   private OAuth2AuthorizationRequestResolver authorizationRequestResolverCodeChallenge(
       ClientRegistrationRepository clientRegistrationRepository) {
-    /*DefaultOAuth2AuthorizationRequestResolver resolver =
+   /*DefaultOAuth2AuthorizationRequestResolver resolver =
         new DefaultOAuth2AuthorizationRequestResolver(
             clientRegistrationRepository,
             OAuth2AuthorizationRequestRedirectFilter.DEFAULT_AUTHORIZATION_REQUEST_BASE_URI);

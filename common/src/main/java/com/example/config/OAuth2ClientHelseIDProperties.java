@@ -7,20 +7,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties("helseid")
 public class OAuth2ClientHelseIDProperties {
 
-    private STS sts = new STS();
+  private STS sts = new STS();
 
-    private Registration registrationName = new Registration();
+  @Data
+  public static class STS {
 
-    @Data
-    public static class STS {
+    private String uri;
+  }
 
-        private String uri;
-    }
 
-    @Data
-    public static class Registration {
-
-        private String login;
-
-    }
 }

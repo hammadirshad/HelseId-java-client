@@ -1,6 +1,7 @@
 package com.example.security;
 
 import com.example.config.OAuth2ClientDetailProperties;
+import com.example.config.OAuth2ClientDetailProperties.Registration;
 import com.example.service.JwtClientAssertionParametersService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Arrays;
@@ -25,6 +26,7 @@ import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequ
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.security.oauth2.core.endpoint.PkceParameterNames;
 import org.springframework.security.oauth2.core.http.converter.OAuth2AccessTokenResponseHttpMessageConverter;
+import org.springframework.security.oauth2.core.oidc.OidcScopes;
 import org.springframework.security.web.util.UrlUtils;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.util.Assert;
@@ -48,6 +50,7 @@ public class PARAuthorizationWithPkceRequestResolver implements OAuth2Authorizat
 
   private final RestOperations restOperations;
   private final JwtClientAssertionParametersService jwtClientAssertionParametersService;
+  private final Map<String, OAuth2ClientDetailProperties.Registration> registrations;
 
   public PARAuthorizationWithPkceRequestResolver(
       ClientRegistrationRepository clientRegistrationRepository,
@@ -66,6 +69,7 @@ public class PARAuthorizationWithPkceRequestResolver implements OAuth2Authorizat
     restTemplate.setErrorHandler(new OAuth2ErrorResponseErrorHandler());
     this.restOperations = restTemplate;
 
+    this.registrations = registrations;
     jwtClientAssertionParametersService = new JwtClientAssertionParametersService(registrations);
   }
 
@@ -111,6 +115,9 @@ public class PARAuthorizationWithPkceRequestResolver implements OAuth2Authorizat
     additionalParameters.put("request_uri", parResponse.request_uri);
     //additionalParameters.put("expires_in", parResponse.expires_in);
 
+    String authorizationEndpoint = clientRegistration.getProviderDetails()
+        .getConfigurationMetadata().get("authorization_endpoint").toString();
+
     OAuth2AuthorizationRequest.Builder builder = OAuth2AuthorizationRequest.authorizationCode()
         .attributes((attrs) ->
         {
@@ -119,8 +126,8 @@ public class PARAuthorizationWithPkceRequestResolver implements OAuth2Authorizat
         })
         .redirectUri(redirectUri)
         .clientId(clientRegistration.getClientId())
-        .scopes(clientRegistration.getScopes())
-        .authorizationUri(clientRegistration.getProviderDetails().getAuthorizationUri())
+        .scope(OidcScopes.OPENID)
+        .authorizationUri(authorizationEndpoint)
         .state(state);
     builder.additionalParameters(additionalParameters);
 
@@ -159,6 +166,16 @@ public class PARAuthorizationWithPkceRequestResolver implements OAuth2Authorizat
 
     body.add(OAuth2ParameterNames.CLIENT_ASSERTION_TYPE, clientAssertionType);
     body.add(OAuth2ParameterNames.CLIENT_ASSERTION, clientAssertion);
+
+    Registration registration = registrations.get(clientRegistration.getRegistrationId());
+    if (registration != null) {
+      if (registration.getAcrValues() != null) {
+        body.add("acr_values", registration.getAcrValues());
+      }
+      if (registration.getPrompt() != null) {
+        body.add("prompt", registration.getPrompt());
+      }
+    }
 
     HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
     ResponseEntity<ParResponse> response = restOperations.postForEntity(parEndpoint, requestEntity,

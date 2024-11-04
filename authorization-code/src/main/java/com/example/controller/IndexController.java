@@ -13,9 +13,10 @@ public class IndexController {
     @RequestMapping("/")
     public String searchForm(Model model, @AuthenticationPrincipal HelseOidcUser user) {
         if (user != null) {
-            model.addAttribute("user_name", user.getFullName());
+            model.addAttribute("user", user.getFullName());
+            model.addAttribute("pid", user.getPid());
+            model.addAttribute("security_level", user.getSecurityLevel());
             model.addAttribute("claims", new JSONObject(user.getClaims()).toString(4));
-            model.addAttribute("attributes", new JSONObject(user.getAttributes()).toString(4));
         }
         return "index";
     }

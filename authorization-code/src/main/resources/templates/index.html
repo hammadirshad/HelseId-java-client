@@ -19,21 +19,21 @@
         <div
             class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
           <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
-            <li th:if="${user_name != null}">
+            <li th:if="${user != null}">
               <a href="#" style="font-weight: bold"
                  class="nav-link px-2 link-secondary"
-                 th:text="${user_name}"/>
+                 th:text="${user + ' [' + pid + ']'}"/>
             </li>
-            <li th:if="${user_name != null}">
+            <li th:if="${user != null}">
               <a th:href="@{/api/token-info}"
                  class="nav-link px-2 link-primary"/>Token Info</a>
             </li>
           </ul>
 
           <div class="col-md-3 text-end">
-            <a th:href="@{/api/login}" th:if="${user_name == null}"
+            <a th:href="@{/api/login}" th:if="${user == null}"
                class="btn btn-outline-primary me-2">Login</a>
-            <a th:href="@{/logout}" th:if="${user_name != null}"
+            <a th:href="@{/logout}" th:if="${user != null}"
                class="btn btn-outline-primary me-2">Logout</a>
           </div>
         </div>
@@ -42,19 +42,9 @@
   </div>
   <br/>
   <div class="container">
-    <div class="d-grid gap-3" style="grid-template-columns: 1fr 2fr;" th:if="${attributes!=null}">
+    <h2 th:if="${claims != null}">Claims</h2>
+    <div class="d-grid gap-3" style="grid-template-columns: 1fr 2fr;" th:if="${claims != null}">
       <div class="bg-light border rounded-3">
-        <h2>Attributes</h2>
-        <p th:text="${attributes}" style="white-space: pre"></p>
-      </div>
-    </div>
-
-  </div>
-  <br/>
-  <div class="container">
-    <div class="d-grid gap-3" style="grid-template-columns: 1fr 2fr;" th:if="${claims!=null}">
-      <div class="bg-light border rounded-3">
-        <h2>Claims</h2>
         <p th:text="${claims}" style="white-space: pre"></p>
       </div>
     </div>
