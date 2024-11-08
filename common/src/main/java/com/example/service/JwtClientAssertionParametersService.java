@@ -105,9 +105,10 @@ public class JwtClientAssertionParametersService {
     JwtClaimsSet.Builder claimsBuilder = JwtClaimsSet.builder()
         .issuer(clientRegistration.getClientId())
         .subject(clientRegistration.getClientId())
-        .audience(Collections.singletonList(clientRegistration.getProviderDetails().getTokenUri()))
+        .audience(Collections.singletonList(clientRegistration.getProviderDetails().getIssuerUri()))
         .id(UUID.randomUUID().toString())
         .issuedAt(issuedAt)
+        .notBefore(issuedAt)
         .expiresAt(expiresAt);
 
     final OAuth2ClientDetailProperties.Registration registration = registrations.get(

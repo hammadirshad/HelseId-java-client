@@ -36,7 +36,5 @@ public class AuthorizationDetailsJwtClientParametersConverter<T extends Abstract
     return jwtClientAssertionParametersService.buildClientAssertionParameters(
         clientRegistration);
   }
-
-
 }
 
