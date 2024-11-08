@@ -100,7 +100,7 @@ public class JwtClientAssertionParametersService {
     JwsHeader.Builder headersBuilder = JwsHeader.with(jwsAlgorithm);
 
     Instant issuedAt = Instant.now();
-    Instant expiresAt = issuedAt.plus(Duration.ofSeconds(60));
+    Instant expiresAt = issuedAt.plus(Duration.ofSeconds(45));
 
     JwtClaimsSet.Builder claimsBuilder = JwtClaimsSet.builder()
         .issuer(clientRegistration.getClientId())
