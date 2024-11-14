@@ -61,12 +61,12 @@ public class ResourceServerConfiguration {
       validators.add(new JwtIssuerValidator(jwtProperties.getIssuerUri()));
     }
 
-    if (oAuth2ClientDetailProperties.getAudience() != null) {
-      validators.add(new JwtAudienceValidator(oAuth2ClientDetailProperties.getAudience()));
+    if (jwtProperties.getIssuerUri() != null) {
+      validators.add(new JwtIssuerValidator(jwtProperties.getIssuerUri()));
     }
 
-    if (oAuth2ClientDetailProperties.getScope() != null) {
-      validators.add(new JwtScopeValidator(oAuth2ClientDetailProperties.getScope()));
+    if (oAuth2ClientDetailProperties.getDetail() != null) {
+      validators.add(new JwtScopeAndAudienceValidator(oAuth2ClientDetailProperties.getDetail()));
     }
 
     nimbusJwtDecoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(validators));

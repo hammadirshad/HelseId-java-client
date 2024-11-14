@@ -2,7 +2,7 @@ package com.example.security;
 
 import com.example.config.HelseConfiguration;
 import com.example.config.OAuth2ClientDetailProperties;
-import com.example.filter.ExpiredTokenFilter;
+import com.example.filter.RefreshTokenFilter;
 import com.example.service.OidcHelseIDBrukerService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -45,7 +45,7 @@ public class WebSecurityConfiguration {
   private final OAuth2ClientDetailProperties oAuth2ClientDetailProperties;
   private final ClientRegistrationRepository clientRegistrationRepository;
   private final OidcHelseIDBrukerService oidcHelseIDBrukerService;
-  private final ExpiredTokenFilter expiredTokenFilter;
+  private final RefreshTokenFilter refreshTokenFilter;
   private final OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest>
       authorizationCodeTokenResponseClient;
 
@@ -57,7 +57,7 @@ public class WebSecurityConfiguration {
 
     return http
         .authorizeHttpRequests(WebSecurityConfiguration::configureAuthorizeRequests)
-        .addFilterAfter(expiredTokenFilter, AuthorizationFilter.class)
+        .addFilterAfter(refreshTokenFilter, AuthorizationFilter.class)
         .sessionManagement(this::configurerSessionManagement)
         .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
         .oauth2Login(
