@@ -2,6 +2,7 @@ package com.example.security;
 
 import com.example.config.DPoPProperties;
 import com.example.config.OAuth2ClientResourceDetailProperties;
+import com.example.config.OAuth2ClientResourceDetailProperties.Detail;
 import com.example.security.dpop.DPoPAuthenticationFilter;
 import com.example.security.dpop.DPoPAuthorizationTokenResolver;
 import com.example.utils.AntPathRequestMatcherWrapper;
@@ -128,11 +129,10 @@ public class ResourceServerConfiguration {
             "/error")
         .permitAll()
         .requestMatchers("/api/**")
-        .hasAnyAuthority(HelseIDJwtAuthenticationConverter.DEFAULT_AUTHORITY_PREFIX.concat(
-            oAuth2ClientDetailProperties.getScope()))
-        .anyRequest()
-        .authenticated();
+        .hasAnyAuthority(oAuth2ClientDetailProperties.getDetail().stream().map(Detail::getScope)
+            .map(HelseIDJwtAuthenticationConverter.DEFAULT_AUTHORITY_PREFIX::concat)
+            .toArray(String[]::new))
+            .anyRequest()
+            .authenticated();
   }
-
-
 }
