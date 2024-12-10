@@ -32,35 +32,38 @@ public class ClientCredentialsExample implements ApplicationRunner {
     OAuth2AccessToken accessToken = helseIDClientCredentialTokenService.getAccessToken();
     request(accessToken, requestUrl);
 
-    DPoPToken dPoPToken = helseIDDPoPClientCredentialTokenService.getAccessToken(
-        requestUrl,
-        HttpMethod.GET.name());
+    DPoPToken dPoPToken =
+        helseIDDPoPClientCredentialTokenService.getAccessToken(requestUrl, HttpMethod.GET.name());
     request(dPoPToken, requestUrl);
   }
 
   private void request(OAuth2AccessToken accessToken, String requestUrl) {
-    log.warn(accessToken.getTokenValue());
+    log.warn("OAuth2 Token: " + accessToken.getTokenValue());
+    log.warn("Scopes: " + String.join(", ", accessToken.getScopes()));
     RestTemplate restTemplate = restTemplateBuilder.build();
     HttpHeaders httpHeaders = new HttpHeaders();
     httpHeaders.setBearerAuth(accessToken.getTokenValue());
-    ResponseEntity<String> responseEntity = restTemplate.exchange(
-        requestUrl, HttpMethod.GET,
-        new HttpEntity<String>(httpHeaders), String.class);
+    ResponseEntity<String> responseEntity =
+        restTemplate.exchange(
+            requestUrl, HttpMethod.GET, new HttpEntity<String>(httpHeaders), String.class);
     if (responseEntity.hasBody()) {
-      log.error("Response from API: " + responseEntity.getBody());
+      log.info("Response from API: " + responseEntity.getBody());
     }
   }
 
   private void request(DPoPToken dPoPToken, String requestUrl) {
+    log.warn("DPoP Token: " + dPoPToken.getTokenValue());
+    log.warn("DPoP Header: " + dPoPToken.getDPoPHeader());
+    log.warn("Scopes: " + String.join(", ", dPoPToken.getScopes()));
     RestTemplate restTemplate = restTemplateBuilder.build();
     HttpHeaders httpHeaders = new HttpHeaders();
     httpHeaders.set("Authorization", "DPoP " + dPoPToken.getTokenValue());
     httpHeaders.set("DPoP", dPoPToken.getDPoPHeader());
-    ResponseEntity<String> responseEntity = restTemplate.exchange(
-        requestUrl, HttpMethod.GET,
-        new HttpEntity<String>(httpHeaders), String.class);
+    ResponseEntity<String> responseEntity =
+        restTemplate.exchange(
+            requestUrl, HttpMethod.GET, new HttpEntity<String>(httpHeaders), String.class);
     if (responseEntity.hasBody()) {
-      log.error("Response from API using DPoP: " + responseEntity.getBody());
+      log.info("Response from API using DPoP: " + responseEntity.getBody());
     }
   }
 }

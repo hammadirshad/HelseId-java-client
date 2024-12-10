@@ -41,7 +41,7 @@ public class JWK2PEM {
             for (int length; (length = inputStream.read(buffer)) != -1; ) {
                 result.write(buffer, 0, length);
             }
-            JSONObject jsonObject = new JSONObject(result.toString(StandardCharsets.UTF_8.name()));
+            JSONObject jsonObject = new JSONObject(result.toString(StandardCharsets.UTF_8));
             return getPem(jsonObject);
         } catch (Exception e) {
             log.error(e.getMessage(), e);

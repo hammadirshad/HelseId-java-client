@@ -18,7 +18,8 @@ public class SecureResource {
   @RequestMapping("/api/client-name")
   public ResponseEntity<?> secureEndpoint(@AuthenticationPrincipal Jwt user) {
     String clinetName = (String) user.getClaims().get("helseid://claims/client/client_name");
-    return new ResponseEntity<>(clinetName, HttpStatus.OK);
+    String clinetOrgnr = (String) user.getClaims().get("helseid://claims/client/claims/orgnr_parent");
+    return new ResponseEntity<>(clinetName + "[" + clinetOrgnr + "]", HttpStatus.OK);
   }
 
   @RequestMapping("/api/token-info")

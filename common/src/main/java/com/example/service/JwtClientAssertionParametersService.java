@@ -59,7 +59,7 @@ public class JwtClientAssertionParametersService {
                   {
                       "system":"urn:oid:2.16.578.1.12.4.1.2.101",
                       "type":"ENH",
-                      "value":"%s",
+                      "value":"%s"
                   }
               }
           }
