@@ -97,7 +97,8 @@ public class JwtClientAssertionParametersService {
       throw new OAuth2AuthorizationException(oauth2Error);
     }
 
-    JwsHeader.Builder headersBuilder = JwsHeader.with(jwsAlgorithm);
+    JwsHeader.Builder headersBuilder = JwsHeader.with(jwsAlgorithm)
+        .header("typ", "client-authentication+jwt");
 
     Instant issuedAt = Instant.now();
     Instant expiresAt = issuedAt.plus(Duration.ofSeconds(45));
@@ -105,7 +106,9 @@ public class JwtClientAssertionParametersService {
     JwtClaimsSet.Builder claimsBuilder = JwtClaimsSet.builder()
         .issuer(clientRegistration.getClientId())
         .subject(clientRegistration.getClientId())
-        .audience(Collections.singletonList(clientRegistration.getProviderDetails().getIssuerUri()))
+        .audience(Collections.singletonList(
+            clientRegistration.getProviderDetails().getConfigurationMetadata().get("issuer")
+                .toString()))
         .id(UUID.randomUUID().toString())
         .issuedAt(issuedAt)
         .notBefore(issuedAt)
