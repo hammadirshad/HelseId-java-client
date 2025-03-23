@@ -1,6 +1,5 @@
-package com.example.security.dpop.request;
+package com.example.security.dpop;
 
-import com.example.security.dpop.DPoPProofBuilder;
 import com.nimbusds.jose.JOSEException;
 import java.net.URI;
 import java.util.Collections;
@@ -11,12 +10,12 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.RequestEntity;
-import org.springframework.security.oauth2.client.endpoint.AbstractOAuth2AuthorizationGrantRequest;
+import org.springframework.security.oauth2.client.endpoint.OAuth2ClientCredentialsGrantRequest;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
+import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -25,16 +24,16 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.util.UriComponentsBuilder;
 
-public class DPoPOClientCredentialsGrantRequestEntityConverter
-    implements Converter<DPoPClientCredentialsGrantRequest, RequestEntity<?>> {
+public class DPoPHttpHeadersConverter<T extends OAuth2ClientCredentialsGrantRequest>
+    implements Converter<T, HttpHeaders> {
 
-  private final Converter<AbstractOAuth2AuthorizationGrantRequest, MultiValueMap<String, String>>
+  private final Converter<OAuth2ClientCredentialsGrantRequest, MultiValueMap<String, String>>
       parametersConverter;
   private final DPoPProofBuilder dPoPProofBuilder;
   private final RestOperations restOperations;
 
-  public DPoPOClientCredentialsGrantRequestEntityConverter(
-      Converter<AbstractOAuth2AuthorizationGrantRequest, MultiValueMap<String, String>>
+  public DPoPHttpHeadersConverter(
+      Converter<OAuth2ClientCredentialsGrantRequest, MultiValueMap<String, String>>
           parametersConverter,
       DPoPProofBuilder dPoPProofBuilder) {
     this.parametersConverter = parametersConverter;
@@ -42,42 +41,17 @@ public class DPoPOClientCredentialsGrantRequestEntityConverter
     this.restOperations = new RestTemplateBuilder().build();
   }
 
-  private MultiValueMap<String, String> getParameters(
-      DPoPClientCredentialsGrantRequest clientCredentialsGrantRequest,
-      ClientRegistration clientRegistration) {
-    MultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
-    parameters.add(
-        OAuth2ParameterNames.GRANT_TYPE, clientCredentialsGrantRequest.getGrantType().getValue());
-    if (!CollectionUtils.isEmpty(clientRegistration.getScopes())) {
-      parameters.add(
-          OAuth2ParameterNames.SCOPE,
-          StringUtils.collectionToDelimitedString(clientRegistration.getScopes(), " "));
-    }
-    return parameters;
-  }
-
-  private URI getUri(DPoPClientCredentialsGrantRequest clientCredentialsGrantRequest) {
-    return UriComponentsBuilder.fromUriString(
-            clientCredentialsGrantRequest
-                .getClientRegistration()
-                .getProviderDetails()
-                .getTokenUri())
-        .build()
-        .toUri();
-  }
-
   @Override
-  public RequestEntity<?> convert(
-      DPoPClientCredentialsGrantRequest dPoPClientCredentialsGrantRequest) {
-    ClientRegistration clientRegistration =
-        dPoPClientCredentialsGrantRequest.getClientRegistration();
+  public HttpHeaders convert(T authorizationGrantRequest) {
+    Assert.notNull(authorizationGrantRequest, "authorizationGrantRequest cannot be null");
+    ClientRegistration clientRegistration = authorizationGrantRequest.getClientRegistration();
 
-    URI uri = getUri(dPoPClientCredentialsGrantRequest);
+    URI uri = getUri(authorizationGrantRequest);
 
     MultiValueMap<String, String> parameters =
-        getParameters(dPoPClientCredentialsGrantRequest, clientRegistration);
+        getParameters(authorizationGrantRequest, clientRegistration);
     MultiValueMap<String, String> convertedParameters =
-        parametersConverter.convert(dPoPClientCredentialsGrantRequest);
+        parametersConverter.convert(authorizationGrantRequest);
     if (convertedParameters != null) {
       parameters.addAll(convertedParameters);
     }
@@ -92,7 +66,31 @@ public class DPoPOClientCredentialsGrantRequestEntityConverter
       httpHeaders.set("DPoP", dPoPProofWithNonce);
     }
 
-    return new RequestEntity<>(parameters, httpHeaders, HttpMethod.POST, uri);
+    return httpHeaders;
+  }
+
+  private MultiValueMap<String, String> getParameters(
+      OAuth2ClientCredentialsGrantRequest clientCredentialsGrantRequest,
+      ClientRegistration clientRegistration) {
+    MultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
+    parameters.add(
+        OAuth2ParameterNames.GRANT_TYPE, clientCredentialsGrantRequest.getGrantType().getValue());
+    if (!CollectionUtils.isEmpty(clientRegistration.getScopes())) {
+      parameters.add(
+          OAuth2ParameterNames.SCOPE,
+          StringUtils.collectionToDelimitedString(clientRegistration.getScopes(), " "));
+    }
+    return parameters;
+  }
+
+  private URI getUri(OAuth2ClientCredentialsGrantRequest clientCredentialsGrantRequest) {
+    return UriComponentsBuilder.fromUriString(
+            clientCredentialsGrantRequest
+                .getClientRegistration()
+                .getProviderDetails()
+                .getTokenUri())
+        .build()
+        .toUri();
   }
 
   private String buildDPoPProof(

@@ -1,12 +1,7 @@
 package com.example.service;
 
 import com.example.model.DPoPToken;
-import com.example.security.dpop.DPoPAuthorizedClient;
-import com.example.security.dpop.DPoPClientCredentialsOAuth2AuthorizedClientProvider;
 import com.example.security.dpop.DPoPProofBuilder;
-import com.example.security.dpop.client.DPoPAccessTokenResponseClient;
-import com.example.security.dpop.request.DPoPClientCredentialsGrantRequest;
-import com.nimbusds.jwt.SignedJWT;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Clock;
@@ -17,11 +12,14 @@ import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.ClientCredentialsOAuth2AuthorizedClientProvider;
 import org.springframework.security.oauth2.client.OAuth2AuthorizationContext;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.core.AbstractOAuth2Token;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.OAuth2AccessToken.TokenType;
 
 @Slf4j
 public class HelseIDDPoPClientCredentialTokenService {
@@ -32,20 +30,19 @@ public class HelseIDDPoPClientCredentialTokenService {
   private final DPoPProofBuilder dPoPProofBuilder;
   private final OAuth2AuthorizedClientService oAuth2AuthorizedClientService;
 
-  private final DPoPClientCredentialsOAuth2AuthorizedClientProvider
-      dPoPClientCredentialsOAuth2AuthorizedClientProvider;
+  private final ClientCredentialsOAuth2AuthorizedClientProvider
+      clientCredentialsAuthorizedClientProvider;
 
   public HelseIDDPoPClientCredentialTokenService(
       ClientRegistration clientRegistration,
       DPoPProofBuilder dPoPProofBuilder,
       OAuth2AuthorizedClientService oAuth2AuthorizedClientService,
-      DPoPAccessTokenResponseClient<DPoPClientCredentialsGrantRequest> credentialsGrantClient,
+      ClientCredentialsOAuth2AuthorizedClientProvider authorizedClientProvider,
       Duration refreshTokenBeforeSeconds) {
     this.clientRegistration = clientRegistration;
     this.oAuth2AuthorizedClientService = oAuth2AuthorizedClientService;
 
-    dPoPClientCredentialsOAuth2AuthorizedClientProvider =
-        new DPoPClientCredentialsOAuth2AuthorizedClientProvider(credentialsGrantClient);
+    clientCredentialsAuthorizedClientProvider = authorizedClientProvider;
 
     this.clockSkew =
         refreshTokenBeforeSeconds != null ? refreshTokenBeforeSeconds : Duration.ofSeconds(60);
@@ -59,16 +56,18 @@ public class HelseIDDPoPClientCredentialTokenService {
         oAuth2AuthorizedClientService.loadAuthorizedClient(
             clientRegistration.getRegistrationId(), clientRegistration.getClientName());
 
-    if (authorizedClient == null || hasTokenExpired(authorizedClient.getAccessToken(), clockSkew)
-        || !(authorizedClient instanceof DPoPAuthorizedClient)) {
+    if (authorizedClient == null
+        || hasTokenExpired(authorizedClient.getAccessToken(), clockSkew)
+        || authorizedClient.getAccessToken().getTokenType() != TokenType.DPOP) {
       authorizedClient = authorizeNewClient(clientRegistration);
     }
 
-    if (authorizedClient instanceof DPoPAuthorizedClient dPoPAuthorizedClient) {
+    OAuth2AccessToken accessToken = authorizedClient.getAccessToken();
+    TokenType tokenType = accessToken.getTokenType();
+    String tokenValue = accessToken.getTokenValue();
+    Set<String> scopes = accessToken.getScopes();
 
-      String tokenType = dPoPAuthorizedClient.getdPoPAccessToken().getTokenType().getValue();
-      String tokenValue = dPoPAuthorizedClient.getdPoPAccessToken().getTokenValue();
-      Set<String> scopes = dPoPAuthorizedClient.getdPoPAccessToken().getScopes();
+    if (tokenType == TokenType.DPOP) {
 
       try {
         byte[] digest =
@@ -78,13 +77,9 @@ public class HelseIDDPoPClientCredentialTokenService {
 
         String dPoPHeader =
             dPoPProofBuilder.createDPoPProof(
-                requestMethod,
-                requestUrl,
-                null,
-                ath,
-                clientRegistration);
+                requestMethod, requestUrl, null, ath, clientRegistration);
 
-        return new DPoPToken(tokenType, tokenValue, scopes, dPoPHeader);
+        return new DPoPToken(tokenType.getValue(), tokenValue, scopes, dPoPHeader);
       } catch (Exception e) {
         log.error(e.getMessage(), e);
       }
@@ -99,14 +94,14 @@ public class HelseIDDPoPClientCredentialTokenService {
             .principal(authentication)
             .build();
     OAuth2AuthorizedClient authorizedClient =
-        dPoPClientCredentialsOAuth2AuthorizedClientProvider.authorize(context);
+        clientCredentialsAuthorizedClientProvider.authorize(context);
     oAuth2AuthorizedClientService.saveAuthorizedClient(authorizedClient, authentication);
     return authorizedClient;
   }
 
   private boolean hasTokenExpired(AbstractOAuth2Token token, Duration clockSkew) {
     return token.getExpiresAt() != null
-           && this.clock.instant().isAfter(token.getExpiresAt().minus(clockSkew));
+        && this.clock.instant().isAfter(token.getExpiresAt().minus(clockSkew));
   }
 
   private static final class HelseIDAuthentication extends AbstractAuthenticationToken {
