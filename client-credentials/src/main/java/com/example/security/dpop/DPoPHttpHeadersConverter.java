@@ -46,7 +46,7 @@ public class DPoPHttpHeadersConverter<T extends OAuth2ClientCredentialsGrantRequ
     Assert.notNull(authorizationGrantRequest, "authorizationGrantRequest cannot be null");
     ClientRegistration clientRegistration = authorizationGrantRequest.getClientRegistration();
 
-    URI uri = getUri(authorizationGrantRequest);
+    URI tokenUri = getTokenUri(clientRegistration);
 
     MultiValueMap<String, String> parameters =
         getParameters(authorizationGrantRequest, clientRegistration);
@@ -61,7 +61,7 @@ public class DPoPHttpHeadersConverter<T extends OAuth2ClientCredentialsGrantRequ
     httpHeaders.setContentType(
         MediaType.valueOf(MediaType.APPLICATION_FORM_URLENCODED_VALUE + ";charset=UTF-8"));
 
-    String dPoPProofWithNonce = buildDPoPProof(uri, parameters, clientRegistration);
+    String dPoPProofWithNonce = buildDPoPProof(tokenUri, parameters, clientRegistration);
     if (dPoPProofWithNonce != null) {
       httpHeaders.set("DPoP", dPoPProofWithNonce);
     }
@@ -83,24 +83,20 @@ public class DPoPHttpHeadersConverter<T extends OAuth2ClientCredentialsGrantRequ
     return parameters;
   }
 
-  private URI getUri(OAuth2ClientCredentialsGrantRequest clientCredentialsGrantRequest) {
-    return UriComponentsBuilder.fromUriString(
-            clientCredentialsGrantRequest
-                .getClientRegistration()
-                .getProviderDetails()
-                .getTokenUri())
+  private URI getTokenUri(ClientRegistration clientRegistration) {
+    return UriComponentsBuilder.fromUriString(clientRegistration.getProviderDetails().getTokenUri())
         .build()
         .toUri();
   }
 
   private String buildDPoPProof(
-      URI uri, MultiValueMap<String, String> parameters, ClientRegistration clientRegistration) {
+      URI tokenUri, MultiValueMap<String, String> parameters, ClientRegistration clientRegistration) {
 
     try {
 
       String dPoPProofWithoutNonce =
           dPoPProofBuilder.createDPoPProof(
-              HttpMethod.POST.name(), uri.toString(), null, clientRegistration);
+              HttpMethod.POST.name(), tokenUri.toString(), null, clientRegistration);
 
       HttpHeaders httpHeaders = new HttpHeaders();
       httpHeaders.set("Content-Type", "application/x-www-form-urlencoded");
@@ -108,7 +104,7 @@ public class DPoPHttpHeadersConverter<T extends OAuth2ClientCredentialsGrantRequ
 
       HttpEntity<?> httpEntity = new HttpEntity<>(parameters, httpHeaders);
 
-      restOperations.postForEntity(uri, httpEntity, String.class);
+      restOperations.postForEntity(tokenUri, httpEntity, String.class);
     } catch (HttpClientErrorException ex) {
       if (ex.getStatusCode() == HttpStatus.BAD_REQUEST
           && ex.getResponseHeaders() != null
@@ -116,7 +112,7 @@ public class DPoPHttpHeadersConverter<T extends OAuth2ClientCredentialsGrantRequ
         String nonce = ex.getResponseHeaders().getFirst("DPoP-Nonce");
         try {
           return dPoPProofBuilder.createDPoPProof(
-              HttpMethod.POST.name(), uri.toString(), nonce, clientRegistration);
+              HttpMethod.POST.name(), tokenUri.toString(), nonce, clientRegistration);
         } catch (JOSEException e) {
           throw new OAuth2AuthorizationException(new OAuth2Error("Failed to create DPoP proof"), e);
         }
