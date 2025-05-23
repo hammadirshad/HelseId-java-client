@@ -29,12 +29,22 @@ public class ClientCredentialsExample implements ApplicationRunner {
   public void run(ApplicationArguments args) {
     String requestUrl = "http://localhost:9090/api/client-name";
 
-    OAuth2AccessToken accessToken = helseIDClientCredentialTokenService.getAccessToken();
-    request(accessToken, requestUrl);
+    try {
+      OAuth2AccessToken accessToken = helseIDClientCredentialTokenService.getAccessToken();
+      request(accessToken, requestUrl);
+    } catch (Exception e) {
+      log.error(e.getMessage(), e);
+    }
 
-    DPoPToken dPoPToken =
-        helseIDDPoPClientCredentialTokenService.getAccessToken(requestUrl, HttpMethod.GET.name());
-    request(dPoPToken, requestUrl);
+    log.info("----------------");
+
+    try {
+      DPoPToken dPoPToken =
+          helseIDDPoPClientCredentialTokenService.getAccessToken(requestUrl, HttpMethod.GET.name());
+      request(dPoPToken, requestUrl);
+    } catch (Exception e) {
+      log.error(e.getMessage(), e);
+    }
   }
 
   private void request(OAuth2AccessToken accessToken, String requestUrl) {

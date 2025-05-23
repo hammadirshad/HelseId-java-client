@@ -1,6 +1,5 @@
 package com.example.service;
 
-import com.example.security.dpop.DPoPAuthorizedClient;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -13,6 +12,7 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.core.AbstractOAuth2Token;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.oauth2.core.OAuth2AccessToken.TokenType;
 
 public class HelseIDClientCredentialTokenService {
 
@@ -43,20 +43,19 @@ public class HelseIDClientCredentialTokenService {
         oAuth2AuthorizedClientService.loadAuthorizedClient(
             clientRegistration.getRegistrationId(), clientRegistration.getClientName());
 
-    if (authorizedClient == null || hasTokenExpired(authorizedClient.getAccessToken(), clockSkew)
-        || authorizedClient instanceof DPoPAuthorizedClient) {
+    if (authorizedClient == null
+        || hasTokenExpired(authorizedClient.getAccessToken(), clockSkew)
+        || authorizedClient.getAccessToken().getTokenType() != TokenType.BEARER) {
 
       authorizedClient = authorizeNewClient(clientRegistration);
     }
     return authorizedClient != null ? authorizedClient.getAccessToken() : null;
-
   }
 
   private boolean hasTokenExpired(AbstractOAuth2Token token, Duration clockSkew) {
     return token.getExpiresAt() != null
-           && this.clock.instant().isAfter(token.getExpiresAt().minus(clockSkew));
+        && this.clock.instant().isAfter(token.getExpiresAt().minus(clockSkew));
   }
-
 
   private OAuth2AuthorizedClient authorizeNewClient(ClientRegistration clientRegistration) {
     Authentication authentication = new HelseIDAuthentication(clientRegistration.getClientName());
@@ -69,7 +68,6 @@ public class HelseIDClientCredentialTokenService {
     oAuth2AuthorizedClientService.saveAuthorizedClient(authorizedClient, authentication);
     return authorizedClient;
   }
-
 
   private static final class HelseIDAuthentication extends AbstractAuthenticationToken {
 
@@ -91,4 +89,3 @@ public class HelseIDClientCredentialTokenService {
     }
   }
 }
-
