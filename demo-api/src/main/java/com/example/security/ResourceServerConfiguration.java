@@ -1,14 +1,9 @@
 package com.example.security;
 
-import com.example.config.DPoPProperties;
 import com.example.config.OAuth2ClientResourceDetailProperties;
 import com.example.config.OAuth2ClientResourceDetailProperties.Detail;
-import com.example.security.dpop.DPoPAuthenticationFilter;
-import com.example.security.dpop.DPoPAuthorizationTokenResolver;
-import com.example.utils.AntPathRequestMatcherWrapper;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.proc.DefaultJOSEObjectTypeVerifier;
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +24,6 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtIssuerValidator;
 import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Slf4j
@@ -75,12 +69,6 @@ public class ResourceServerConfiguration {
       HelseIDJwtAuthenticationConverter jwtAuthenticationConverter,
       OAuth2ClientResourceDetailProperties oAuth2ClientDetailProperties) throws Exception {
     return http
-        .securityMatcher(new AntPathRequestMatcherWrapper("/api/**") {
-          @Override
-          protected boolean precondition(HttpServletRequest request) {
-            return !String.valueOf(request.getHeader("Authorization")).contains("DPoP");
-          }
-        })
         .authorizeHttpRequests(
             registry -> ResourceServerConfiguration.configureAuthorizeRequests(registry,
                 oAuth2ClientDetailProperties))
@@ -91,30 +79,6 @@ public class ResourceServerConfiguration {
         .build();
   }
 
-  @Bean
-  public SecurityFilterChain filterChainDPoP(HttpSecurity http,
-      HelseIDJwtAuthenticationConverter jwtAuthenticationConverter,
-      OAuth2ClientResourceDetailProperties oAuth2ClientDetailProperties,
-      DPoPProperties dPoPCheckerProperties) throws Exception {
-    return http
-        .securityMatcher(new AntPathRequestMatcherWrapper("/api/**") {
-          @Override
-          protected boolean precondition(HttpServletRequest request) {
-            return String.valueOf(request.getHeader("Authorization")).contains("DPoP");
-          }
-        })
-        .authorizeHttpRequests(
-            registry -> ResourceServerConfiguration.configureAuthorizeRequests(registry,
-                oAuth2ClientDetailProperties))
-        .addFilterBefore(new DPoPAuthenticationFilter(dPoPCheckerProperties),
-            BearerTokenAuthenticationFilter.class)
-        .oauth2ResourceServer(
-            oauth2ResourceServer ->
-                oauth2ResourceServer.bearerTokenResolver(new DPoPAuthorizationTokenResolver())
-                    .jwt(jwtConfigurer -> jwtConfigurer.jwtAuthenticationConverter(
-                        jwtAuthenticationConverter)))
-        .build();
-  }
 
   static void configureAuthorizeRequests(
       AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry
