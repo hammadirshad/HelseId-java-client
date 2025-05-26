@@ -1,5 +1,14 @@
 package com.example.utils;
 
+import com.example.config.OAuth2ClientDetailProperties.Registration;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.KeyType;
+import com.nimbusds.jose.jwk.RSAKey;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
@@ -14,6 +23,9 @@ import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.spec.*;
 import java.util.Enumeration;
+import org.springframework.security.oauth2.jose.jws.JwsAlgorithm;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 
 @Slf4j
 public class CertificateUtils {
@@ -153,5 +165,56 @@ public class CertificateUtils {
             && privateKey.getModulus().equals(publicKey.getModulus());
     }
 
+    public static RSAKey getRsaKey(RSAPrivateKey privateKey, String keyId)
+        throws NoSuchAlgorithmException, InvalidKeySpecException {
+        RSAPublicKey publicKey = (RSAPublicKey) CertificateUtils.getPublicKey(privateKey);
+        return new RSAKey.Builder(publicKey)
+            .privateKey(privateKey)
+            .keyID(keyId != null ? keyId : UUID.randomUUID().toString())
+            .build();
+    }
+
+    public static RSAPrivateKey getRsaPrivateKey(String privateKeyValue)
+        throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+        RSAPrivateKey privateKey;
+        if (privateKeyValue.endsWith(".pem")) {
+            final String pem =
+                Files.readString(Path.of(PathResolver.getURI(privateKeyValue)));
+            privateKey = (RSAPrivateKey) CertificateUtils.getPrivateKey(pem);
+        } else if (privateKeyValue.endsWith(".xml")) {
+            final String pem =
+                XMLSec2PEM.getPem(PathResolver.getInputStream(privateKeyValue));
+            privateKey = (RSAPrivateKey) CertificateUtils.getPrivateKey(pem);
+        } else if (privateKeyValue.endsWith(".json")) {
+            final String pem = JWK2PEM.getPem(PathResolver.getInputStream(privateKeyValue));
+            privateKey = (RSAPrivateKey) CertificateUtils.getPrivateKey(pem);
+        } else {
+            privateKey = (RSAPrivateKey) CertificateUtils.getPrivateKey(privateKeyValue);
+        }
+        return privateKey;
+    }
+
+    public static JwsAlgorithm resolveAlgorithm(JWK jwk) {
+        JwsAlgorithm jwsAlgorithm = null;
+
+        if (jwk.getAlgorithm() != null) {
+            jwsAlgorithm = SignatureAlgorithm.from(jwk.getAlgorithm().getName());
+            if (jwsAlgorithm == null) {
+                jwsAlgorithm = MacAlgorithm.from(jwk.getAlgorithm().getName());
+            }
+        }
+
+        if (jwsAlgorithm == null) {
+            if (KeyType.RSA.equals(jwk.getKeyType())) {
+                jwsAlgorithm = SignatureAlgorithm.RS256;
+            } else if (KeyType.EC.equals(jwk.getKeyType())) {
+                jwsAlgorithm = SignatureAlgorithm.ES256;
+            } else if (KeyType.OCT.equals(jwk.getKeyType())) {
+                jwsAlgorithm = MacAlgorithm.HS256;
+            }
+        }
+
+        return jwsAlgorithm;
+    }
 }
 

@@ -2,33 +2,27 @@ package com.example.security.dpop;
 
 import com.example.config.OAuth2ClientDetailProperties.Registration;
 import com.example.utils.CertificateUtils;
-import com.example.utils.JWK2PEM;
-import com.example.utils.PathResolver;
-import com.example.utils.XMLSec2PEM;
 import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JOSEObjectType;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.JWSSigner;
-import com.nimbusds.jose.crypto.RSASSASigner;
-import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jose.jwk.KeyType;
+import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.JWTClaimsSet.Builder;
-import com.nimbusds.jwt.SignedJWT;
+import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.SecurityContext;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
-import java.util.Date;
+import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet.Builder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 
 @Slf4j
 public class DPoPProofBuilder {
@@ -56,34 +50,30 @@ public class DPoPProofBuilder {
     try {
 
       RSAPrivateKey privateKey = getRsaPrivateKey(registration);
-      RSAPublicKey publicKey = (RSAPublicKey) CertificateUtils.getPublicKey(privateKey);
-      JWK jwk = new RSAKey.Builder(publicKey).build();
+      RSAKey rsaKey = CertificateUtils.getRsaKey(privateKey, null);
 
-      JWSHeader header =
-          new JWSHeader.Builder(resolveAlgorithm(jwk))
-              .type(new JOSEObjectType("dpop+jwt"))
-              .jwk(jwk)
+      JWKSource<SecurityContext> jwkSource = new ImmutableJWKSet<>(new JWKSet(rsaKey));
+      NimbusJwtEncoder jwtEncoder = new NimbusJwtEncoder(jwkSource);
+
+      JwsHeader jwsHeader =
+          JwsHeader.with(CertificateUtils.resolveAlgorithm(rsaKey))
+              .jwk(rsaKey.toPublicJWK().toJSONObject())
+              .header("typ", "dpop+jwt")
               .build();
-      JWSSigner signer = new RSASSASigner(privateKey);
 
       Builder builder =
-          new Builder()
-              .jwtID(UUID.randomUUID().toString())
-              .issueTime(new Date())
-              .claim("htm", httpMethod)
-              .claim("htu", url);
+          JwtClaimsSet.builder().issuedAt(Instant.now()).claim("htm", httpMethod).claim("htu", url);
+
       if (ath != null) {
         builder.claim("ath", ath);
       }
       if (nonce != null) {
         builder.claim("nonce", nonce);
       }
-      JWTClaimsSet claimsSet = builder.build();
+      JwtClaimsSet claims = builder.id(UUID.randomUUID().toString()).build();
 
-      SignedJWT signedJWT = new SignedJWT(header, claimsSet);
-      signedJWT.sign(signer);
-
-      return signedJWT.serialize();
+      Jwt jws = jwtEncoder.encode(JwtEncoderParameters.from(jwsHeader, claims));
+      return jws.getTokenValue();
     } catch (Exception e) {
       log.error(e.getMessage(), e);
     }
@@ -91,37 +81,9 @@ public class DPoPProofBuilder {
     return null;
   }
 
-  private static JWSAlgorithm resolveAlgorithm(JWK jwk) {
-    JWSAlgorithm jwsAlgorithm = null;
-
-    if (KeyType.RSA.equals(jwk.getKeyType())) {
-      jwsAlgorithm = JWSAlgorithm.RS256;
-    } else if (KeyType.EC.equals(jwk.getKeyType())) {
-      jwsAlgorithm = JWSAlgorithm.ES256;
-    } else if (KeyType.OCT.equals(jwk.getKeyType())) {
-      jwsAlgorithm = JWSAlgorithm.HS256;
-    }
-    return jwsAlgorithm;
-  }
-
   private RSAPrivateKey getRsaPrivateKey(Registration registration)
       throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
-    RSAPrivateKey privateKey;
-    if (registration.getPrivateKey().endsWith(".pem")) {
-      final String pem = Files.readString(
-          Path.of(PathResolver.getURI(registration.getPrivateKey())));
-      privateKey = (RSAPrivateKey) CertificateUtils.getPrivateKey(pem);
-    } else if (registration.getPrivateKey().endsWith(".xml")) {
-      final String pem = XMLSec2PEM.getPem(
-          PathResolver.getInputStream(registration.getPrivateKey()));
-      privateKey = (RSAPrivateKey) CertificateUtils.getPrivateKey(pem);
-    } else if (registration.getPrivateKey().endsWith(".json")) {
-      final String pem = JWK2PEM.getPem(PathResolver.getInputStream(registration.getPrivateKey()));
-      privateKey = (RSAPrivateKey) CertificateUtils.getPrivateKey(pem);
-    } else {
-      final String pem = registration.getPrivateKey();
-      privateKey = (RSAPrivateKey) CertificateUtils.getPrivateKey(pem);
-    }
-    return privateKey;
+    String privateKeyValue = registration.getPrivateKey();
+    return CertificateUtils.getRsaPrivateKey(privateKeyValue);
   }
 }
