@@ -5,7 +5,6 @@ import com.example.security.dpop.DPoPProofBuilder;
 import com.example.service.AuthorizationDetailsJwtClientParametersConverter;
 import com.example.service.HelseIDClientCredentialTokenService;
 import com.example.service.HelseIDDPoPClientCredentialTokenService;
-import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.security.oauth2.client.ConditionalOnOAuth2ClientRegistrationProperties;
@@ -85,15 +84,14 @@ public class HelseIDClientCredentialConfiguration {
       OAuth2AuthorizedClientService oAuth2AuthorizedClientService,
       @Qualifier("authorizationCredentialsGrantResponseClient")
           OAuth2AccessTokenResponseClient<OAuth2ClientCredentialsGrantRequest>
-          authorizationCredentialsGrantResponseClient) {
+              tokenResponseClient) {
 
     ClientRegistration clientRegistration =
         clientRegistrationRepository.findByRegistrationId(HELSEID_CREDENTIALS);
 
     ClientCredentialsOAuth2AuthorizedClientProvider clientCredentialsAuthorizedClientProvider =
         new ClientCredentialsOAuth2AuthorizedClientProvider();
-    clientCredentialsAuthorizedClientProvider.setAccessTokenResponseClient(
-        authorizationCredentialsGrantResponseClient);
+    clientCredentialsAuthorizedClientProvider.setAccessTokenResponseClient(tokenResponseClient);
 
     return new HelseIDClientCredentialTokenService(
         clientRegistration,
@@ -108,20 +106,18 @@ public class HelseIDClientCredentialConfiguration {
       DPoPProofBuilder dPoPProofBuilder,
       @Qualifier("authorizationCredentialsGrantResponseDpopClient")
           OAuth2AccessTokenResponseClient<OAuth2ClientCredentialsGrantRequest>
-          authorizationCredentialsGrantResponseDpopClient) {
+              dPoPTokenResponseClient) {
     ClientRegistration clientRegistration =
         clientRegistrationRepository.findByRegistrationId(HELSEID_CREDENTIALS);
 
     ClientCredentialsOAuth2AuthorizedClientProvider clientCredentialsAuthorizedClientProvider =
         new ClientCredentialsOAuth2AuthorizedClientProvider();
-    clientCredentialsAuthorizedClientProvider.setAccessTokenResponseClient(
-        authorizationCredentialsGrantResponseDpopClient);
+    clientCredentialsAuthorizedClientProvider.setAccessTokenResponseClient(dPoPTokenResponseClient);
 
     return new HelseIDDPoPClientCredentialTokenService(
         clientRegistration,
         dPoPProofBuilder,
         oAuth2AuthorizedClientService,
-        clientCredentialsAuthorizedClientProvider,
-        Duration.ofMinutes(2));
+        clientCredentialsAuthorizedClientProvider);
   }
 }

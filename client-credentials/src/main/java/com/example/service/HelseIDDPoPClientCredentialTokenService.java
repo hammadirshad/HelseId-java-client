@@ -25,7 +25,7 @@ import org.springframework.security.oauth2.core.OAuth2AccessToken.TokenType;
 public class HelseIDDPoPClientCredentialTokenService {
 
   private final Clock clock = Clock.systemUTC();
-  private final Duration clockSkew;
+  private final Duration clockSkew = Duration.ofSeconds(60);
   private final ClientRegistration clientRegistration;
   private final DPoPProofBuilder dPoPProofBuilder;
   private final OAuth2AuthorizedClientService oAuth2AuthorizedClientService;
@@ -37,16 +37,11 @@ public class HelseIDDPoPClientCredentialTokenService {
       ClientRegistration clientRegistration,
       DPoPProofBuilder dPoPProofBuilder,
       OAuth2AuthorizedClientService oAuth2AuthorizedClientService,
-      ClientCredentialsOAuth2AuthorizedClientProvider authorizedClientProvider,
-      Duration refreshTokenBeforeSeconds) {
+      ClientCredentialsOAuth2AuthorizedClientProvider authorizedClientProvider) {
     this.clientRegistration = clientRegistration;
-    this.oAuth2AuthorizedClientService = oAuth2AuthorizedClientService;
-
-    clientCredentialsAuthorizedClientProvider = authorizedClientProvider;
-
-    this.clockSkew =
-        refreshTokenBeforeSeconds != null ? refreshTokenBeforeSeconds : Duration.ofSeconds(60);
     this.dPoPProofBuilder = dPoPProofBuilder;
+    this.oAuth2AuthorizedClientService = oAuth2AuthorizedClientService;
+    clientCredentialsAuthorizedClientProvider = authorizedClientProvider;
   }
 
   public DPoPToken getAccessToken(String requestUrl, String requestMethod) {
