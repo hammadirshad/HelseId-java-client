@@ -39,6 +39,8 @@ public class OAuth2ClientDetailProperties {
 
         private String acrValues;
 
+        private Long maxAge;
+
         private String prompt;
     }
 }

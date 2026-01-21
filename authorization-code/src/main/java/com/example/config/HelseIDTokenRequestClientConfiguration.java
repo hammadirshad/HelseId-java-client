@@ -6,54 +6,47 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.oauth2.client.endpoint.DefaultAuthorizationCodeTokenResponseClient;
-import org.springframework.security.oauth2.client.endpoint.DefaultRefreshTokenTokenResponseClient;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
-import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequestEntityConverter;
 import org.springframework.security.oauth2.client.endpoint.OAuth2RefreshTokenGrantRequest;
-import org.springframework.security.oauth2.client.endpoint.OAuth2RefreshTokenGrantRequestEntityConverter;
+import org.springframework.security.oauth2.client.endpoint.RestClientAuthorizationCodeTokenResponseClient;
+import org.springframework.security.oauth2.client.endpoint.RestClientRefreshTokenTokenResponseClient;
 
 @Slf4j
 @Configuration
-@EnableConfigurationProperties({
-        OAuth2ClientDetailProperties.class
-})
+@EnableConfigurationProperties({OAuth2ClientDetailProperties.class})
 @RequiredArgsConstructor
 public class HelseIDTokenRequestClientConfiguration {
-    private final OAuth2ClientDetailProperties oauth2ClientKeypairProperties;
 
-    @Bean
-    public OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest>
-    authorizationCodeTokenResponseClient() {
-        DefaultAuthorizationCodeTokenResponseClient tokenResponseClient =
-                new DefaultAuthorizationCodeTokenResponseClient();
+  @Bean
+  @Primary
+  public OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest>
+      authorizationCodeTokenResponseClient(
+          OAuth2ClientDetailProperties oauth2ClientKeypairProperties) {
 
-        OAuth2AuthorizationCodeGrantRequestEntityConverter requestEntityConverter =
-                new OAuth2AuthorizationCodeGrantRequestEntityConverter();
+    RestClientAuthorizationCodeTokenResponseClient tokenResponseClient =
+        new RestClientAuthorizationCodeTokenResponseClient();
 
-        requestEntityConverter.addParametersConverter(
-                new AuthorizationDetailsJwtClientParametersConverter<>(oauth2ClientKeypairProperties.getRegistration()));
+    tokenResponseClient.addParametersConverter(
+        new AuthorizationDetailsJwtClientParametersConverter<>(
+            oauth2ClientKeypairProperties.getRegistration()));
 
-        tokenResponseClient.setRequestEntityConverter(requestEntityConverter);
-        return tokenResponseClient;
-    }
+    return tokenResponseClient;
+  }
 
+  @Bean
+  @Primary
+  public OAuth2AccessTokenResponseClient<OAuth2RefreshTokenGrantRequest> refreshTokenResponseClient(
+      OAuth2ClientDetailProperties oauth2ClientKeypairProperties) {
 
-    @Bean
-    public OAuth2AccessTokenResponseClient<OAuth2RefreshTokenGrantRequest>
-    authorizationRefreshTokenTokenResponseClient() {
-        DefaultRefreshTokenTokenResponseClient tokenResponseClient =
-                new DefaultRefreshTokenTokenResponseClient();
+    RestClientRefreshTokenTokenResponseClient tokenResponseClient =
+        new RestClientRefreshTokenTokenResponseClient();
 
-        OAuth2RefreshTokenGrantRequestEntityConverter requestEntityConverter =
-                new OAuth2RefreshTokenGrantRequestEntityConverter();
-        requestEntityConverter.addParametersConverter(
-                new AuthorizationDetailsJwtClientParametersConverter<>(oauth2ClientKeypairProperties.getRegistration()));
+    tokenResponseClient.addParametersConverter(
+        new AuthorizationDetailsJwtClientParametersConverter<>(
+            oauth2ClientKeypairProperties.getRegistration()));
 
-        tokenResponseClient.setRequestEntityConverter(requestEntityConverter);
-        return tokenResponseClient;
-    }
-
+    return tokenResponseClient;
+  }
 }
-

@@ -11,7 +11,7 @@ import java.util.Map;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.FormHttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.security.crypto.keygen.Base64StringKeyGenerator;
 import org.springframework.security.crypto.keygen.StringKeyGenerator;
 import org.springframework.security.oauth2.client.http.OAuth2ErrorResponseErrorHandler;
@@ -56,7 +56,7 @@ public class PARAuthorizationWithPkceRequestResolver implements OAuth2Authorizat
                 messageConverters.clear();
                 messageConverters.add(new FormHttpMessageConverter());
                 messageConverters.add(new OAuth2AccessTokenResponseHttpMessageConverter());
-                messageConverters.add(new MappingJackson2HttpMessageConverter());
+                messageConverters.add(new JacksonJsonHttpMessageConverter());
               })
           .defaultStatusHandler(new OAuth2ErrorResponseErrorHandler())
           .build();
@@ -208,6 +208,9 @@ public class PARAuthorizationWithPkceRequestResolver implements OAuth2Authorizat
       }
       if (registration.getPrompt() != null && !registration.getPrompt().isEmpty()) {
         body.add("prompt", registration.getPrompt());
+      }
+      if (registration.getMaxAge() != null) {
+        body.add("max_age", registration.getMaxAge().toString());
       }
     }
 

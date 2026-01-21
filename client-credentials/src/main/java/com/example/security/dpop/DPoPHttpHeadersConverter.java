@@ -3,7 +3,6 @@ package com.example.security.dpop;
 import com.nimbusds.jose.JOSEException;
 import java.net.URI;
 import java.util.Collections;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -21,7 +20,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestOperations;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 public class DPoPHttpHeadersConverter<T extends OAuth2ClientCredentialsGrantRequest>
@@ -30,7 +29,7 @@ public class DPoPHttpHeadersConverter<T extends OAuth2ClientCredentialsGrantRequ
   private final Converter<OAuth2ClientCredentialsGrantRequest, MultiValueMap<String, String>>
       parametersConverter;
   private final DPoPProofBuilder dPoPProofBuilder;
-  private final RestOperations restOperations;
+  private final RestClient restClient = RestClient.builder().build();
 
   public DPoPHttpHeadersConverter(
       Converter<OAuth2ClientCredentialsGrantRequest, MultiValueMap<String, String>>
@@ -38,7 +37,6 @@ public class DPoPHttpHeadersConverter<T extends OAuth2ClientCredentialsGrantRequ
       DPoPProofBuilder dPoPProofBuilder) {
     this.parametersConverter = parametersConverter;
     this.dPoPProofBuilder = dPoPProofBuilder;
-    this.restOperations = new RestTemplateBuilder().build();
   }
 
   @Override
@@ -57,9 +55,8 @@ public class DPoPHttpHeadersConverter<T extends OAuth2ClientCredentialsGrantRequ
     }
 
     HttpHeaders httpHeaders = new HttpHeaders();
-    httpHeaders.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON_UTF8));
-    httpHeaders.setContentType(
-        MediaType.valueOf(MediaType.APPLICATION_FORM_URLENCODED_VALUE + ";charset=UTF-8"));
+    httpHeaders.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+    httpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
     String dPoPProofWithNonce = buildDPoPProof(tokenUri, parameters, clientRegistration);
     if (dPoPProofWithNonce != null) {
@@ -98,13 +95,17 @@ public class DPoPHttpHeadersConverter<T extends OAuth2ClientCredentialsGrantRequ
           dPoPProofBuilder.createDPoPProof(
               HttpMethod.POST.name(), tokenUri.toString(), null, clientRegistration);
 
-      HttpHeaders httpHeaders = new HttpHeaders();
-      httpHeaders.set("Content-Type", "application/x-www-form-urlencoded");
-      httpHeaders.set("DPoP", dPoPProofWithoutNonce);
-
-      HttpEntity<?> httpEntity = new HttpEntity<>(parameters, httpHeaders);
-
-      restOperations.postForEntity(tokenUri, httpEntity, String.class);
+      restClient
+          .post()
+          .uri(tokenUri)
+          .body(parameters)
+          .headers(
+              httpHeaders -> {
+                httpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+                httpHeaders.set("DPoP", dPoPProofWithoutNonce);
+              })
+          .retrieve()
+          .toEntity(String.class);
     } catch (HttpClientErrorException ex) {
       if (ex.getStatusCode() == HttpStatus.BAD_REQUEST
           && ex.getResponseHeaders() != null

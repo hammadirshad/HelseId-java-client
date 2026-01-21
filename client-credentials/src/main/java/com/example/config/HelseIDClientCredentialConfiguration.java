@@ -7,7 +7,6 @@ import com.example.service.HelseIDClientCredentialTokenService;
 import com.example.service.HelseIDDPoPClientCredentialTokenService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.security.oauth2.client.ConditionalOnOAuth2ClientRegistrationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,7 +27,8 @@ import org.springframework.util.MultiValueMap;
 @EnableConfigurationProperties({
   OAuth2ClientHelseIDProperties.class,
 })
-@ConditionalOnOAuth2ClientRegistrationProperties
+@org.springframework.boot.security.oauth2.client.autoconfigure
+    .ConditionalOnOAuth2ClientRegistrationProperties
 public class HelseIDClientCredentialConfiguration {
 
   private static final String HELSEID_CREDENTIALS = "helseid-credentials";

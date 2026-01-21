@@ -34,7 +34,7 @@ import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.security.web.savedrequest.SimpleSavedRequest;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 @Slf4j
 @Configuration
@@ -51,12 +51,12 @@ public class WebSecurityConfiguration {
 
   @Bean
   public SecurityFilterChain configure(HttpSecurity http) throws Exception {
-    String baseRedirectUri = oAuth2ClientDetailProperties.getRegistration(
-            HelseConfiguration.REGISTRATION_NAME)
-        .getBaseRedirectUri();
+    String baseRedirectUri =
+        oAuth2ClientDetailProperties
+            .getRegistration(HelseConfiguration.REGISTRATION_NAME)
+            .getBaseRedirectUri();
 
-    return http
-        .authorizeHttpRequests(WebSecurityConfiguration::configureAuthorizeRequests)
+    return http.authorizeHttpRequests(WebSecurityConfiguration::configureAuthorizeRequests)
         .addFilterAfter(refreshTokenFilter, AuthorizationFilter.class)
         .sessionManagement(this::configurerSessionManagement)
         .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
@@ -70,8 +70,8 @@ public class WebSecurityConfiguration {
                     authorizationCodeTokenResponseClient))
         .logout(
             logout ->
-                WebSecurityConfiguration.configureLogout(logout,
-                    oidcLogoutSuccessHandler(HelseConfiguration.REGISTRATION_NAME)))
+                WebSecurityConfiguration.configureLogout(
+                    logout, oidcLogoutSuccessHandler(HelseConfiguration.REGISTRATION_NAME)))
         .build();
   }
 
@@ -80,7 +80,6 @@ public class WebSecurityConfiguration {
         clientRegistrationRepository.findByRegistrationId(registrationName);
     return new InMemoryClientRegistrationRepository(clientRegistration);
   }
-
 
   public LogoutSuccessHandler oidcLogoutSuccessHandler(String registrationName) {
     final OAuth2ClientDetailProperties.Registration registration =
@@ -116,21 +115,15 @@ public class WebSecurityConfiguration {
     };
   }
 
-
   static void configureAuthorizeRequests(
       AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry
           authorizeRequests) {
     authorizeRequests
-        .requestMatchers("/",
-            "/error",
-            "/actuator/**",
-            "/webjars/**")
+        .requestMatchers("/", "/error", "/actuator/**", "/webjars/**")
         .permitAll()
         .requestMatchers("/api/**")
         .hasAnyAuthority("ROLE_ACTIVE")
-        .requestMatchers("/logout**",
-            "/api/token-info",
-            "/api/login")
+        .requestMatchers("/logout**", "/api/token-info", "/api/login")
         .authenticated()
         .anyRequest()
         .authenticated();
@@ -165,7 +158,7 @@ public class WebSecurityConfiguration {
 
   private OAuth2AuthorizationRequestResolver authorizationRequestResolverCodeChallenge(
       ClientRegistrationRepository clientRegistrationRepository) {
-   /*DefaultOAuth2AuthorizationRequestResolver resolver =
+    /*DefaultOAuth2AuthorizationRequestResolver resolver =
         new DefaultOAuth2AuthorizationRequestResolver(
             clientRegistrationRepository,
             OAuth2AuthorizationRequestRedirectFilter.DEFAULT_AUTHORIZATION_REQUEST_BASE_URI);
@@ -183,7 +176,7 @@ public class WebSecurityConfiguration {
   static void configureLogout(
       LogoutConfigurer<HttpSecurity> logout, LogoutSuccessHandler oidcLogoutSuccessHandler) {
     logout
-        .logoutRequestMatcher(new AntPathRequestMatcher("/logout**"))
+        .logoutRequestMatcher(PathPatternRequestMatcher.pathPattern("/logout**"))
         .logoutSuccessUrl("/")
         .logoutSuccessHandler(oidcLogoutSuccessHandler)
         .deleteCookies("JSESSIONID", "XSRF-TOKEN", "NX-ANTI-CSRF-TOKEN", "refreshToken")
