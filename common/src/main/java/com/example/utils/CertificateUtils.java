@@ -206,7 +206,7 @@ public class CertificateUtils {
 
         if (jwsAlgorithm == null) {
             if (KeyType.RSA.equals(jwk.getKeyType())) {
-                jwsAlgorithm = SignatureAlgorithm.RS256;
+                jwsAlgorithm = SignatureAlgorithm.PS256;
             } else if (KeyType.EC.equals(jwk.getKeyType())) {
                 jwsAlgorithm = SignatureAlgorithm.ES256;
             } else if (KeyType.OCT.equals(jwk.getKeyType())) {

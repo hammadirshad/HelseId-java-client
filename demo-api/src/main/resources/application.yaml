@@ -8,6 +8,9 @@ spring:
         jwt:
           jwk-set-uri: ${helseid.sts.uri}/.well-known/openid-configuration/jwks
           issuer-uri: ${helseid.sts.uri}
+          jws-algorithms:
+            - RS256
+            - PS256
 helseid:
   sts:
     uri: https://helseid-sts.test.nhn.no

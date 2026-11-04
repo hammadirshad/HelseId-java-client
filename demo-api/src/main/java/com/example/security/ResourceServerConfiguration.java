@@ -13,6 +13,7 @@ import org.springframework.boot.security.oauth2.server.resource.autoconfigure.OA
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer;
@@ -35,18 +36,26 @@ public class ResourceServerConfiguration {
   @Primary
   @Bean
   @ConditionalOnProperty(name = "spring.security.oauth2.resourceserver.jwt.jwk-set-uri")
-  JwtDecoder jwtDecoderByJwkKeySetUri(OAuth2ResourceServerProperties oAuth2ResourceServerProperties,
+  JwtDecoder jwtDecoderByJwkKeySetUri(
+      OAuth2ResourceServerProperties oAuth2ResourceServerProperties,
       OAuth2ClientResourceDetailProperties oAuth2ClientDetailProperties) {
     OAuth2ResourceServerProperties.Jwt jwtProperties = oAuth2ResourceServerProperties.getJwt();
 
-    NimbusJwtDecoder nimbusJwtDecoder = NimbusJwtDecoder.withJwkSetUri(jwtProperties.getJwkSetUri())
-        .jwsAlgorithm(SignatureAlgorithm.from(jwtProperties.getJwsAlgorithms().get(0)))
-        .jwtProcessorCustomizer(
-            (processor) ->
-                processor.setJWSTypeVerifier(
-                    new DefaultJOSEObjectTypeVerifier(
-                        new JOSEObjectType("JWT"), new JOSEObjectType("at+jwt"))))
-        .build();
+    NimbusJwtDecoder nimbusJwtDecoder =
+        NimbusJwtDecoder.withJwkSetUri(jwtProperties.getJwkSetUri())
+            .jwsAlgorithms(
+                signatureAlgorithms ->
+                    jwtProperties
+                        .getJwsAlgorithms()
+                        .forEach(
+                            algorithm ->
+                                signatureAlgorithms.add(SignatureAlgorithm.from(algorithm))))
+            .jwtProcessorCustomizer(
+                (processor) ->
+                    processor.setJWSTypeVerifier(
+                        new DefaultJOSEObjectTypeVerifier<>(
+                            new JOSEObjectType("JWT"), new JOSEObjectType("at+jwt"))))
+            .build();
 
     List<OAuth2TokenValidator<Jwt>> validators = new ArrayList<>();
 
@@ -65,34 +74,35 @@ public class ResourceServerConfiguration {
   }
 
   @Bean
-  public SecurityFilterChain filterChain(HttpSecurity http,
+  public SecurityFilterChain filterChain(
+      HttpSecurity http,
       HelseIDJwtAuthenticationConverter jwtAuthenticationConverter,
-      OAuth2ClientResourceDetailProperties oAuth2ClientDetailProperties) throws Exception {
-    return http
-        .authorizeHttpRequests(
-            registry -> ResourceServerConfiguration.configureAuthorizeRequests(registry,
-                oAuth2ClientDetailProperties))
-        .oauth2ResourceServer(
-            oauth2ResourceServer ->
-                oauth2ResourceServer.jwt(jwtConfigurer -> jwtConfigurer.jwtAuthenticationConverter(
-                    jwtAuthenticationConverter)))
+      OAuth2ClientResourceDetailProperties oAuth2ClientDetailProperties) {
+    return http.authorizeHttpRequests(registry ->
+            ResourceServerConfiguration.configureAuthorizeRequests(
+                registry, oAuth2ClientDetailProperties))
+        .oauth2ResourceServer(oauth2ResourceServer ->
+            oauth2ResourceServer
+                .jwt(jwtConfigurer ->
+                    jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter))
+                .dPoP(Customizer.withDefaults()))
         .build();
   }
-
 
   static void configureAuthorizeRequests(
       AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry
           authorizeRequests,
       OAuth2ClientResourceDetailProperties oAuth2ClientDetailProperties) {
     authorizeRequests
-        .requestMatchers("/",
-            "/error")
+        .requestMatchers("/", "/error")
         .permitAll()
         .requestMatchers("/api/**")
-        .hasAnyAuthority(oAuth2ClientDetailProperties.getDetail().stream().map(Detail::getScope)
-            .map(HelseIDJwtAuthenticationConverter.DEFAULT_AUTHORITY_PREFIX::concat)
-            .toArray(String[]::new))
-            .anyRequest()
-            .authenticated();
+        .hasAnyAuthority(
+            oAuth2ClientDetailProperties.getDetail().stream()
+                .map(Detail::getScope)
+                .map(HelseIDJwtAuthenticationConverter.DEFAULT_AUTHORITY_PREFIX::concat)
+                .toArray(String[]::new))
+        .anyRequest()
+        .authenticated();
   }
 }

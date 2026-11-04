@@ -51,13 +51,16 @@ public class PARAuthorizationWithPkceRequestResolver implements OAuth2Authorizat
 
   private final RestClient restClient =
       RestClient.builder()
-          .messageConverters(
-              (messageConverters) -> {
-                messageConverters.clear();
-                messageConverters.add(new FormHttpMessageConverter());
-                messageConverters.add(new OAuth2AccessTokenResponseHttpMessageConverter());
-                messageConverters.add(new JacksonJsonHttpMessageConverter());
-              })
+          .configureMessageConverters(
+              clientBuilder ->
+                  clientBuilder.configureMessageConvertersList(
+                      httpMessageConverters -> {
+                        httpMessageConverters.clear();
+                        httpMessageConverters.add(new FormHttpMessageConverter());
+                        httpMessageConverters.add(
+                            new OAuth2AccessTokenResponseHttpMessageConverter());
+                        httpMessageConverters.add(new JacksonJsonHttpMessageConverter());
+                      }))
           .defaultStatusHandler(new OAuth2ErrorResponseErrorHandler())
           .build();
 

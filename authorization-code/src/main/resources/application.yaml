@@ -5,6 +5,9 @@ spring:
         jwt:
           jwk-set-uri: ${helseid.sts.uri}/.well-known/openid-configuration/jwks
           issuer-uri: ${helseid.sts.uri}
+          jws-algorithms:
+            - RS256
+            - PS256
       client:
         detail:
           registration:
@@ -37,3 +40,7 @@ helseid:
 
 server:
   port: 8089
+
+logging:
+  level:
+    org.springframework.security: info

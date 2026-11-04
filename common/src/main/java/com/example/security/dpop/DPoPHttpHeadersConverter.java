@@ -2,14 +2,12 @@ package com.example.security.dpop;
 
 import com.nimbusds.jose.JOSEException;
 import java.net.URI;
-import java.util.Collections;
 import org.springframework.core.convert.converter.Converter;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.security.oauth2.client.endpoint.OAuth2ClientCredentialsGrantRequest;
+import org.springframework.security.oauth2.client.endpoint.AbstractOAuth2AuthorizationGrantRequest;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.core.OAuth2AuthorizationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
@@ -23,16 +21,17 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
-public class DPoPHttpHeadersConverter<T extends OAuth2ClientCredentialsGrantRequest>
+public class DPoPHttpHeadersConverter<T extends AbstractOAuth2AuthorizationGrantRequest>
     implements Converter<T, HttpHeaders> {
 
-  private final Converter<OAuth2ClientCredentialsGrantRequest, MultiValueMap<String, String>>
+  private final Converter<AbstractOAuth2AuthorizationGrantRequest, MultiValueMap<String, String>>
       parametersConverter;
   private final DPoPProofBuilder dPoPProofBuilder;
+
   private final RestClient restClient = RestClient.builder().build();
 
   public DPoPHttpHeadersConverter(
-      Converter<OAuth2ClientCredentialsGrantRequest, MultiValueMap<String, String>>
+      Converter<AbstractOAuth2AuthorizationGrantRequest, MultiValueMap<String, String>>
           parametersConverter,
       DPoPProofBuilder dPoPProofBuilder) {
     this.parametersConverter = parametersConverter;
@@ -44,7 +43,7 @@ public class DPoPHttpHeadersConverter<T extends OAuth2ClientCredentialsGrantRequ
     Assert.notNull(authorizationGrantRequest, "authorizationGrantRequest cannot be null");
     ClientRegistration clientRegistration = authorizationGrantRequest.getClientRegistration();
 
-    URI tokenUri = getTokenUri(clientRegistration);
+    URI uri = getUri(authorizationGrantRequest);
 
     MultiValueMap<String, String> parameters =
         getParameters(authorizationGrantRequest, clientRegistration);
@@ -55,10 +54,10 @@ public class DPoPHttpHeadersConverter<T extends OAuth2ClientCredentialsGrantRequ
     }
 
     HttpHeaders httpHeaders = new HttpHeaders();
-    httpHeaders.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-    httpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+    /*httpHeaders.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+    httpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);*/
 
-    String dPoPProofWithNonce = buildDPoPProof(tokenUri, parameters, clientRegistration);
+    String dPoPProofWithNonce = buildDPoPProof(uri, parameters, clientRegistration);
     if (dPoPProofWithNonce != null) {
       httpHeaders.set("DPoP", dPoPProofWithNonce);
     }
@@ -67,7 +66,7 @@ public class DPoPHttpHeadersConverter<T extends OAuth2ClientCredentialsGrantRequ
   }
 
   private MultiValueMap<String, String> getParameters(
-      OAuth2ClientCredentialsGrantRequest clientCredentialsGrantRequest,
+      AbstractOAuth2AuthorizationGrantRequest clientCredentialsGrantRequest,
       ClientRegistration clientRegistration) {
     MultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
     parameters.add(
@@ -80,14 +79,20 @@ public class DPoPHttpHeadersConverter<T extends OAuth2ClientCredentialsGrantRequ
     return parameters;
   }
 
-  private URI getTokenUri(ClientRegistration clientRegistration) {
-    return UriComponentsBuilder.fromUriString(clientRegistration.getProviderDetails().getTokenUri())
+  private URI getUri(AbstractOAuth2AuthorizationGrantRequest clientCredentialsGrantRequest) {
+    return UriComponentsBuilder.fromUriString(
+            clientCredentialsGrantRequest
+                .getClientRegistration()
+                .getProviderDetails()
+                .getTokenUri())
         .build()
         .toUri();
   }
 
   private String buildDPoPProof(
-      URI tokenUri, MultiValueMap<String, String> parameters, ClientRegistration clientRegistration) {
+      URI tokenUri,
+      MultiValueMap<String, String> parameters,
+      ClientRegistration clientRegistration) {
 
     try {
 

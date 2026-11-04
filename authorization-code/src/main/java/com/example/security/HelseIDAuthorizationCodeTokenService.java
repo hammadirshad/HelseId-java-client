@@ -38,17 +38,17 @@ public class HelseIDAuthorizationCodeTokenService {
   private static final String INVALID_ID_TOKEN_ERROR_CODE = "invalid_id_token";
   private final Duration accessTokenExpiresSkew = Duration.ofSeconds(30);
   private final Clock clock = Clock.systemUTC();
-  private final JwtDecoderFactory<ClientRegistration> jwtDecoderFactory =
-      new OidcIdTokenDecoderFactory();
+  private final JwtDecoderFactory<ClientRegistration> idTokenDecoderFactory;
 
   private final OAuth2AuthorizedClientRepository oAuth2AuthorizedClientRepository;
   private final OAuth2AccessTokenResponseClient<OAuth2RefreshTokenGrantRequest> refreshTokenClient;
   private final OidcUserService oidcUserService;
 
   public HelseIDAuthorizationCodeTokenService(
-      OAuth2AuthorizedClientRepository oAuth2AuthorizedClientRepository,
+      JwtDecoderFactory<ClientRegistration> idTokenDecoderFactory, OAuth2AuthorizedClientRepository oAuth2AuthorizedClientRepository,
       OAuth2AccessTokenResponseClient<OAuth2RefreshTokenGrantRequest> refreshTokenClient,
       OidcUserService oidcUserService) {
+    this.idTokenDecoderFactory = idTokenDecoderFactory;
     this.oAuth2AuthorizedClientRepository = oAuth2AuthorizedClientRepository;
     this.refreshTokenClient = refreshTokenClient;
     this.oidcUserService = oidcUserService;
@@ -197,7 +197,7 @@ public class HelseIDAuthorizationCodeTokenService {
 
   private OidcIdToken createOidcToken(
       ClientRegistration clientRegistration, OAuth2AccessTokenResponse accessTokenResponse) {
-    JwtDecoder jwtDecoder = jwtDecoderFactory.createDecoder(clientRegistration);
+    JwtDecoder jwtDecoder = idTokenDecoderFactory.createDecoder(clientRegistration);
     Jwt jwt;
     try {
       jwt =
